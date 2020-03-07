@@ -1,6 +1,8 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import copy
 
+import numpy as np
+from matplotlib import pyplot as plt
+from torch import load
 from torch.utils.data import Dataset, random_split
 from torchvision import datasets
 
@@ -10,24 +12,29 @@ class TobaccoImageDataset(Dataset):
         self.root = root
         full = datasets.ImageFolder(self.root)  # build a proper vision dataset
 
-        self.imgs = full.samples.copy()
+        self.imgs = copy.deepcopy(full.samples)
         self.extensions = full.extensions  # maybe useless?
         self.class_to_idx = full.class_to_idx  # maybe useless?
         self.samples = full.samples
         self.classes = full.classes
         self.targets = full.targets
         self.loader = full.loader
+        self.transforms = transforms
 
         if lengths is None:
-            self.lentghs = [self.__len__(), 0, 0]
+            self.lentghs = [800, 200, 3482 - 800 - 200]
         else:
             self.lentghs = lengths
-        self.transforms = transforms
 
         random_dataset_split = random_split(self, lengths=self.lentghs)
         self.train = random_dataset_split[0]
         self.val = random_dataset_split[1]
         self.test = random_dataset_split[2]
+        self.datasets = {
+            'train': self.train,
+            'val': self.val,
+            'test': self.test,
+        }
 
         if self.transforms is not None:
             for index in range(len(self.samples)):
@@ -63,14 +70,15 @@ class TobaccoImageDataset(Dataset):
         partial_sums_test = np.unique([self.targets[i] for i in self.test.indices], return_counts=True)[1]
         partial_probs_test = [x / len(self.test) for x in partial_sums_test]
 
-def imshow(inp, title=None):
-    """Imshow for Tensor."""
-    inp = inp.numpy().transpose((1, 2, 0))
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    plt.imshow(inp)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.001)  # pause a bit so that plots are updated
+        plt.plot(partial_probs, label='full')
+        plt.plot(partial_probs_train, label='train')
+        plt.plot(partial_probs_val, label='validation')
+        plt.plot(partial_probs_test, label='test')
+        plt.legend()
+        plt.xticks(list(range(10)), self.classes, rotation=20)
+
+
+if __name__ == '__main__':
+    d = load('/tmp/tobacco_image_dataset.pth')
+    d.check_distributions()
+    plt.show()
