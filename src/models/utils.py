@@ -1,12 +1,10 @@
+import copy
 import time
 
-import matplotlib.pyplot as plt
 import torch
-import copy
 
-from datasets.utils import imshow
 
-def train_image_model(dataloaders, model, criterion, optimizer, scheduler, device, lengths, num_epochs=25):
+def train_image_model(model, dataloaders, criterion, optimizer, scheduler, device, lengths, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -74,29 +72,26 @@ def train_image_model(dataloaders, model, criterion, optimizer, scheduler, devic
     model.load_state_dict(best_model_wts)
     return model
 
-# noinspection PyUnresolvedReferences
-def evaluate_model(model, dataloader, device, num_images=6):
-    was_training = model.training
-    model.eval()
-    images_so_far = 0
-    plt.figure()
 
-    with torch.no_grad():
-        for i, (data_inputs, labels) in enumerate(dataloader):
-            data_inputs = data_inputs.to(device)
-            labels.to(device)
+def evaluate_model(model, dataloader, device, length):
+    best_acc = 0.0
 
+    model.eval()  # Set model to evaluate mode
+    running_corrects = 0
+
+    # Iterate over data.
+    for data_inputs, labels in dataloader:
+        data_inputs = data_inputs.to(device)
+        labels = labels.to(device)
+
+        with torch.set_grad_enabled(False):
             outputs = model(data_inputs)
             _, preds = torch.max(outputs, 1)
 
-            for j in range(data_inputs.size()[0]):
-                images_so_far += 1
-                ax = plt.subplot(num_images // 2, 2, images_so_far)
-                ax.axis('off')
-                ax.set_title('predicted: {}'.format(dataloader.dataset.classes[preds[j]]))
-                imshow(data_inputs.cpu().data[j])
+        # statistics
+        running_corrects += torch.sum(preds == labels.data)
 
-                if images_so_far == num_images:
-                    model.train(mode=was_training)
-                    return
-        model.train(mode=was_training)
+    acc = float(running_corrects) / length
+    print('Acc: {:4f}'.format(acc))
+
+    return acc

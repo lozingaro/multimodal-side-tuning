@@ -16,4 +16,4 @@ class FineTuneModel(nn.Module):
 
     def _base_model(self):
         # return models.mobilenet_v2(pretrained=self.pretrained)
-        return models.resnet18(pretrained=self.pretrained)
+        return models.resnet50(pretrained=self.pretrained)

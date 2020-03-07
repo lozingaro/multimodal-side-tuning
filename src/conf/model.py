@@ -1,11 +1,8 @@
-from torch.optim import lr_scheduler, Adam
+from torch import nn
 
-def optimizer(model, lr):
-    return adam_optimizer(model=model, lr=lr)
+image_criterion = nn.CrossEntropyLoss()
+image_initial_lr = .01
+image_momentum = .9
+image_step = 1
+image_epochs = 1
 
-def adam_optimizer(model, lr=0.001):
-    return Adam(model.parameters(), lr=lr, weight_decay=0.0)
-
-def expr_lr_scheduler(optimizer, step_size=7):
-    # Decay LR by a factor of 0.1 every 7 epochs
-    return lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)

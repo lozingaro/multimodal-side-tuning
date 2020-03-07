@@ -1,22 +1,20 @@
 from __future__ import print_function, division
 
-import os
-import warnings
+from math import pow
+from os import path
+from warnings import filterwarnings
 
 import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
-from torchvision import transforms, utils
+from torchvision import utils, transforms
 
+import datasets
+import models
 from conf import core, model
-from datasets.tobacco import TobaccoImageDataset
-import datasets.utils
-from models.transfer import FineTuneModel
-from models.utils import evaluate_model, train_image_model
 
-warnings.filterwarnings("ignore")
+filterwarnings("ignore")
 
 # Load Data
 image_transforms = {
@@ -43,10 +41,11 @@ image_transforms = {
 }
 
 image_dataset_saved_path = '/tmp/tobacco_image_dataset.pth'
-if os.path.exists(image_dataset_saved_path) and not core.build_dataset_from_scratch:
+if path.exists(image_dataset_saved_path) and not core.build_dataset_from_scratch:
     image_dataset = torch.load(image_dataset_saved_path)
 else:
-    image_dataset = TobaccoImageDataset(core.root_dir, list(core.lengths.values()), image_transforms)
+    image_dataset = datasets.tobacco.TobaccoImageDataset(core.root_dir, list(core.lengths.values()),
+                                                         image_transforms)
     torch.save(image_dataset, image_dataset_saved_path)
 
 image_dataloaders = {
@@ -64,21 +63,21 @@ out = utils.make_grid(one_batch_inputs)
 datasets.utils.imshow(out, title=[image_dataset.classes[x] for x in one_batch_classes])
 
 # Finetuning the convnet
-image_model = FineTuneModel(len(image_dataset.classes))
+image_model = models.transfer.FineTuneModel(len(image_dataset.classes))
 image_model = image_model.to(core.device)
-image_train_criterion = nn.CrossEntropyLoss()
 
 # Train and evaluate
-optimizer = model.adam_optimizer(image_model)
-scheduler = model.expr_lr_scheduler(optimizer)
-image_model = train_image_model(image_dataloaders,
-                                image_model,
-                                image_train_criterion,
-                                optimizer=optimizer,
-                                scheduler=scheduler,
-                                device=core.device,
-                                lengths=core.lengths,
-                                num_epochs=core.epochs)
-
-evaluate_model(image_model, dataloader=image_dataloaders['test'], device=core.device)
-plt.show()
+image_optimizer = torch.optim.SGD(image_model.parameters(), lr=model.image_initial_lr,
+                                  momentum=model.image_momentum)
+image_scheduler = LambdaLR(image_optimizer, lr_lambda=lambda epoch: pow(1 - epoch / model.image_epochs, .5))
+image_model = models.utils.train_image_model(image_model,
+                                             image_dataloaders,
+                                             model.image_criterion,
+                                             optimizer=image_optimizer,
+                                             scheduler=image_scheduler,
+                                             device=core.device,
+                                             lengths=core.lengths,
+                                             num_epochs=model.image_epochs)
+test_accuracy = models.utils.evaluate_model(image_model,
+                                            image_dataloaders['test'],
+                                            length=core.lengths['test'])
