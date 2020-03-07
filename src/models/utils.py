@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import torch
 import copy
 
-from my_datasets.utils import imshow
+from datasets.utils import imshow
 
-def train_model(dataloaders, model, criterion, optimizer, scheduler, device, lengths, num_epochs=25):
+def train_image_model(dataloaders, model, criterion, optimizer, scheduler, device, lengths, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -75,7 +75,7 @@ def train_model(dataloaders, model, criterion, optimizer, scheduler, device, len
     return model
 
 # noinspection PyUnresolvedReferences
-def visualize_model(model, dataloader, device, num_images=6):
+def evaluate_model(model, dataloader, device, num_images=6):
     was_training = model.training
     model.eval()
     images_so_far = 0
@@ -83,7 +83,7 @@ def visualize_model(model, dataloader, device, num_images=6):
 
     with torch.no_grad():
         for i, (data_inputs, labels) in enumerate(dataloader):
-            data_inputs = data_inputs.to(torch.device)
+            data_inputs = data_inputs.to(device)
             labels.to(device)
 
             outputs = model(data_inputs)
@@ -96,7 +96,7 @@ def visualize_model(model, dataloader, device, num_images=6):
                 ax.set_title('predicted: {}'.format(dataloader.dataset.classes[preds[j]]))
                 imshow(data_inputs.cpu().data[j])
 
-                # if images_so_far == num_images:
-                #     model.train(mode=was_training)
-                #     return
+                if images_so_far == num_images:
+                    model.train(mode=was_training)
+                    return
         model.train(mode=was_training)

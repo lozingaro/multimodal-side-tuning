@@ -3,17 +3,18 @@ from __future__ import print_function, division
 import os
 import warnings
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from torch.optim import lr_scheduler, Adam
+
 from torch.utils.data import DataLoader
 from torchvision import transforms, utils
 
-from configs import core
-from my_datasets.tobacco import TobaccoImageDataset
-from my_datasets.utils import imshow
-from my_models.transfer import FineTuneModel
-from my_models.utils import visualize_model, train_model
+from conf import core, model
+from datasets.tobacco import TobaccoImageDataset
+import datasets.utils
+from models.transfer import FineTuneModel
+from models.utils import evaluate_model, train_image_model
 
 warnings.filterwarnings("ignore")
 
@@ -60,26 +61,24 @@ image_dataloaders = {
 # Visualize a few images
 one_batch_inputs, one_batch_classes = next(iter(image_dataloaders['train']))
 out = utils.make_grid(one_batch_inputs)
-imshow(out, title=[image_dataset.classes[x] for x in one_batch_classes])
+datasets.utils.imshow(out, title=[image_dataset.classes[x] for x in one_batch_classes])
 
 # Finetuning the convnet
 image_model = FineTuneModel(len(image_dataset.classes))
 image_model = image_model.to(core.device)
-
-train_criterion = nn.CrossEntropyLoss()
-optimizer_ft = Adam(image_model.parameters(), lr=0.001, weight_decay=0.0)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)  # maybe useless?
+image_train_criterion = nn.CrossEntropyLoss()
 
 # Train and evaluate
-model_ft = train_model(image_dataloaders,
-                       image_model,
-                       train_criterion,
-                       optimizer_ft,
-                       exp_lr_scheduler,
-                       device=core.device,
-                       lengths=core.lengths,
-                       num_epochs=1)
+optimizer = model.adam_optimizer(image_model)
+scheduler = model.expr_lr_scheduler(optimizer)
+image_model = train_image_model(image_dataloaders,
+                                image_model,
+                                image_train_criterion,
+                                optimizer=optimizer,
+                                scheduler=scheduler,
+                                device=core.device,
+                                lengths=core.lengths,
+                                num_epochs=core.epochs)
 
-visualize_model(model_ft, dataloader=image_dataloaders['test'], device=core.device)
+evaluate_model(image_model, dataloader=image_dataloaders['test'], device=core.device)
+plt.show()
