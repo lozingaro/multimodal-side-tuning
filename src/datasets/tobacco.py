@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from torch.utils.data import Dataset, random_split
 from torchvision import datasets
@@ -9,7 +10,7 @@ class TobaccoImageDataset(Dataset):
         self.root = root
         full = datasets.ImageFolder(self.root)  # build a proper vision dataset
 
-        self.imgs = full.imgs  # maybe useless?
+        self.imgs = full.samples.copy()
         self.extensions = full.extensions  # maybe useless?
         self.class_to_idx = full.class_to_idx  # maybe useless?
         self.samples = full.samples
@@ -23,7 +24,7 @@ class TobaccoImageDataset(Dataset):
             self.lentghs = lengths
         self.transforms = transforms
 
-        random_dataset_split = random_split(full, lengths=self.lentghs)
+        random_dataset_split = random_split(self, lengths=self.lentghs)
         self.train = random_dataset_split[0]
         self.val = random_dataset_split[1]
         self.test = random_dataset_split[2]
@@ -55,4 +56,21 @@ class TobaccoImageDataset(Dataset):
         # check the distribution of the train dataset
         partial_sums_train = np.unique([self.targets[i] for i in self.train.indices], return_counts=True)[1]
         partial_probs_train = [x / len(self.train) for x in partial_sums_train]
-        print(partial_probs, partial_probs_train)
+        # check the distribution of the val dataset
+        partial_sums_val = np.unique([self.targets[i] for i in self.val.indices], return_counts=True)[1]
+        partial_probs_val = [x / len(self.val) for x in partial_sums_val]
+        # check the distribution of the test dataset
+        partial_sums_test = np.unique([self.targets[i] for i in self.test.indices], return_counts=True)[1]
+        partial_probs_test = [x / len(self.test) for x in partial_sums_test]
+
+def imshow(inp, title=None):
+    """Imshow for Tensor."""
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0.001)  # pause a bit so that plots are updated

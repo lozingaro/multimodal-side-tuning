@@ -1,29 +1,31 @@
 from __future__ import print_function, division
 
 import copy
+import os
 import time
 import warnings
 
 import matplotlib.pyplot as plt
-import numpy as np
+import torch
 import torch.nn as nn
-from torch import cuda, max, set_grad_enabled, sum, device, no_grad
+
 from torch.optim import lr_scheduler, Adam
 from torch.utils.data import DataLoader
 from torchvision import models, transforms, utils
 
-from configs.core import train_batch_size, val_batch_size, test_batch_size, train_length, val_length, test_length
-from datasets.tobacco import TobaccoImageDataset
+from configs.core import train_batch_size, val_batch_size, test_batch_size, train_length, val_length, test_length, \
+    from_scratch
+from datasets.tobacco import TobaccoImageDataset, imshow
 
 warnings.filterwarnings("ignore")
 plt.ion()  # interactive mode
-device = device("cuda:0" if cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load Data
 root_dir = '/Users/zingaro/SD128/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
 # root_dir = '/data01/stefanopio.zingaro/datasets/tobacco-image'
 
-data_transforms = {
+image_transforms = {
     # Data augmentation and normalization for training
     'train': transforms.Compose([
         transforms.RandomResizedCrop(224),
@@ -46,50 +48,40 @@ data_transforms = {
     ]),
 }
 
-image_dataset = TobaccoImageDataset(root_dir, [train_length, val_length, test_length], data_transforms)
+image_dataset_saved_path = '/tmp/tobacco_image_dataset.pth'
+if os.path.exists(image_dataset_saved_path) and not from_scratch:
+    image_dataset = torch.load(image_dataset_saved_path)
+else:
+    image_dataset = TobaccoImageDataset(root_dir, [train_length, val_length, test_length], image_transforms)
+    torch.save(image_dataset, image_dataset_saved_path)
+
 image_datasets = {
     'train': image_dataset.train,
     'val': image_dataset.val,
     'test': image_dataset.test,
 }
 image_dataloaders = {
-    'train': DataLoader(image_dataset.train, batch_size=train_batch_size, shuffle=True),
-    'val': DataLoader(image_dataset.val, batch_size=val_batch_size, shuffle=True),
-    'test': DataLoader(image_dataset.test, batch_size=test_batch_size, shuffle=True),
+    'train': DataLoader(image_dataset.train, batch_size=train_batch_size, shuffle=True, num_workers=4),
+    'val': DataLoader(image_dataset.val, batch_size=val_batch_size, shuffle=True, num_workers=1),
+    'test': DataLoader(image_dataset.test, batch_size=test_batch_size, shuffle=True, num_workers=1),
 }
 
-
-######################################################################
-# Visualize a few images
-# ^^^^^^^^^^^^^^^^^^^^^^
-# Let's visualize a few training images so as to understand the data
-# augmentations.
-
-def imshow(inp, title=None):
-    """Imshow for Tensor."""
-    inp = inp.numpy().transpose((1, 2, 0))
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    plt.imshow(inp)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.001)  # pause a bit so that plots are updated
-
+###################################################################################
+#                               Visualize a few images
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Let's visualize a few training images so as to understand the data augmentations.
 
 # Get a batch of training data
 inputs, classes = next(iter(image_dataloaders['train']))
 
 # Make a grid from batch
 out = utils.make_grid(inputs)
-
 imshow(out, title=[image_dataset.classes[x] for x in classes])
 
 
-######################################################################
-# Training the model
-# ------------------
+###################################################################################
+#                                   Training the model
+# ---------------------------------------------------------------------------------
 #
 # Now, let's write a general function to train a model. Here, we will
 # illustrate:
@@ -123,17 +115,17 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
             # Iterate over data.
             for data_inputs, labels in image_dataloaders[phase]:
-                data_inputs = data_inputs.to(device)
-                labels = labels.to(device)
+                data_inputs = data_inputs.to(torch.device)
+                labels = labels.to(torch.device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
-                with set_grad_enabled(phase == 'train'):
+                with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(data_inputs)
-                    _, preds = max(outputs, 1)
+                    _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
                     # backward + optimize only if in training phase
@@ -143,7 +135,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
                 # statistics
                 running_loss += loss.item() * data_inputs.size(0)
-                running_corrects += sum(preds == labels.data)
+                running_corrects += torch.sum(preds == labels.data)
             if phase == 'train':
                 scheduler.step()
 
@@ -177,20 +169,19 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 # Generic function to display predictions for a few images
 #
 
-# noinspection PyUnresolvedReferences
 def visualize_model(model, num_images=6):
     was_training = model.training
     model.eval()
     images_so_far = 0
     plt.figure()
 
-    with no_grad():
-        for i, (data_inputs, labels) in enumerate(image_dataloaders['val']):
-            data_inputs = data_inputs.to(device)
-            labels.to(device)
+    with torch.no_grad():
+        for i, (data_inputs, labels) in enumerate(image_dataloaders['test']):
+            data_inputs = data_inputs.to(torch.device)
+            labels.to(torch.device)
 
             outputs = model(data_inputs)
-            _, preds = max(outputs, 1)
+            _, preds = torch.max(outputs, 1)
 
             for j in range(data_inputs.size()[0]):
                 images_so_far += 1
@@ -231,9 +222,6 @@ exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 ######################################################################
 # Train and evaluate
 # ^^^^^^^^^^^^^^^^^^
-#
-# It should take around 15-25 min on CPU. On GPU though, it takes less than a
-# minute.
 #
 
 model_ft = train_model(model_ft, train_criterion, optimizer_ft, exp_lr_scheduler, num_epochs=25)
