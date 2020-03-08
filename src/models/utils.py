@@ -70,12 +70,11 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
 
     # load best model weights
     model.load_state_dict(best_model_wts)
+
     return model
 
 
 def evaluate_model(model, dataloader, device, length):
-    best_acc = 0.0
-
     model.eval()  # Set model to evaluate mode
     running_corrects = 0
 
