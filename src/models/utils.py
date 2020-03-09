@@ -14,7 +14,6 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()  # Set model to training mode
@@ -36,8 +35,9 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(data_inputs)
+
                     _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+                    loss = criterion(outputs, labels)  # merge somehow
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
@@ -64,8 +64,7 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
         print()
 
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
+    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('Best val Acc: {:4f}'.format(best_acc))
 
     # load best model weights
@@ -75,10 +74,9 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
 
 
 def evaluate_model(model, dataloader, device, length):
-    model.eval()  # Set model to evaluate mode
     running_corrects = 0
 
-    # Iterate over data.
+    model.eval()
     for data_inputs, labels in dataloader:
         data_inputs = data_inputs.to(device)
         labels = labels.to(device)
@@ -87,10 +85,6 @@ def evaluate_model(model, dataloader, device, length):
             outputs = model(data_inputs)
             _, preds = torch.max(outputs, 1)
 
-        # statistics
         running_corrects += torch.sum(preds == labels.data)
 
-    acc = float(running_corrects) / length
-    print('Acc: {:4f}'.format(acc))
-
-    return acc
+    return float(running_corrects) / length

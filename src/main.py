@@ -1,13 +1,12 @@
 from __future__ import print_function, division
 
-from math import pow
+from math import sqrt
 from os import path
 from warnings import filterwarnings
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 import datasets
 import models
@@ -15,66 +14,36 @@ from conf import core, model
 
 filterwarnings("ignore")
 
-# Load Data
-image_transforms = {
-    # Data augmentation and normalization for training
-    'train': transforms.Compose([
-        # transforms.RandomResizedCrop(224),
-        # transforms.RandomHorizontalFlip(),
-        transforms.Resize(224),
-        transforms.ToTensor(),
-        transforms.Normalize(core.mean_normalization, core.std_normalization),
-    ]),
-    # Just normalization for validation
-    'val': transforms.Compose([
-        # transforms.Resize(256),
-        # transforms.CenterCrop(224),
-        transforms.Resize(224),
-        transforms.ToTensor(),
-        transforms.Normalize(core.mean_normalization, core.std_normalization),
-    ]),
-    # Just normalization for validation
-    'test': transforms.Compose([
-        transforms.Resize(224),
-        transforms.ToTensor(),
-        transforms.Normalize(core.mean_normalization, core.std_normalization),
-    ]),
-}
-
-image_dataset_saved_path = '/tmp/tobacco_image_dataset.pth'
-if path.exists(image_dataset_saved_path) and not core.build_dataset_from_scratch:
+print('\nLoading data...')
+# image_dataset_saved_path = '/tmp/tobacco_image_dataset_bicubic_norm.pth'
+image_dataset_saved_path = '/tmp/tobacco_image_dataset_bilinear_norm.pth'
+# image_dataset_saved_path = '/tmp/tobacco_image_dataset_pad_bilinear_norm.pth'
+# image_dataset_saved_path = '/tmp/tobacco_image_dataset_pad_rotate_bilinear_norm.pth'
+if path.exists(image_dataset_saved_path) and core.load_dataset:
     image_dataset = torch.load(image_dataset_saved_path)
 else:
-    image_dataset = datasets.tobacco.TobaccoImageDataset(core.root_dir, list(core.lengths.values()),
-                                                         image_transforms)
+    image_dataset = datasets.tobacco.TobaccoImageDataset(core.root_dir, list(core.lengths.values()))
     torch.save(image_dataset, image_dataset_saved_path)
 
 image_dataloaders = {
     x: DataLoader(image_dataset.datasets[x],
                   batch_size=core.batch_sizes[x],
-                  shuffle=x == 'train',
-                  num_workers=core.workers,
-                  pin_memory=True)
+                  shuffle=bool(x == 'train' or x == 'val'),
+                  num_workers=core.workers)
     for x in ['train', 'val', 'test']
 }
 
-# Visualize a few images
-# one_batch_inputs, one_batch_classes = next(iter(image_dataloaders['train']))
-# out = utils.make_grid(one_batch_inputs)
-# datasets.utils.imshow(out, title=[image_dataset.classes[x] for x in one_batch_classes])
-
-# Finetuning the convnet
+print('\nLoading model...')
 image_model = models.transfer.FineTuneModel(len(image_dataset.classes))
 image_model = image_model.to(core.device)
-
-# Train and evaluate
-image_model_saved_path = '/tmp/tobacco_image_model.pth'
-if path.exists(image_model_saved_path) and not core.build_model_from_scratch:
+image_model_saved_path = '/tmp/tobacco_image_model_bilinear_norm_01.pth'
+if path.exists(image_model_saved_path):
     image_model = torch.load(image_model_saved_path)
 else:
     image_optimizer = torch.optim.SGD(image_model.parameters(), lr=model.image_initial_lr,
                                       momentum=model.image_momentum)
-    image_scheduler = LambdaLR(image_optimizer, lr_lambda=lambda epoch: pow(1 - epoch / model.image_epochs, .5))
+    lr_lambda = lambda epoch: model.image_initial_lr * sqrt(1 - epoch / model.image_epochs)
+    image_scheduler = LambdaLR(image_optimizer, lr_lambda=lr_lambda)
     image_model = models.utils.train_image_model(image_model,
                                                  image_dataloaders,
                                                  model.image_criterion,
@@ -85,7 +54,6 @@ else:
                                                  num_epochs=model.image_epochs)
     torch.save(image_model, image_model_saved_path)
 
-test_accuracy = models.utils.evaluate_model(image_model,
-                                            image_dataloaders['test'],
-                                            length=core.lengths['test'],
-                                            device=core.device)
+print('\nTesting on the remaining samples...')
+acc = models.evaluate_model(image_model, image_dataloaders['test'], device=core.device, length=core.lengths['test'])
+print('Test Accuracy: {:4f}'.format(acc))
