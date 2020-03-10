@@ -4,6 +4,7 @@ from PIL import Image
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 root_dir = '/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg'
+seed = 42
 batch_sizes = {
     'train': 16,
     'val': 4,
