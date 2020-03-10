@@ -5,6 +5,7 @@ from os import path
 from warnings import filterwarnings
 
 import torch
+from torch.backends import cudnn
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 
@@ -13,6 +14,10 @@ import models
 from conf import core, model
 
 filterwarnings("ignore")
+
+# Set the seed for pseudorandom operations
+torch.manual_seed(core.seed)
+cudnn.deterministic = True
 
 print('\nLoading data...')
 # image_dataset_saved_path = '/tmp/tobacco_image_dataset_bicubic_norm.pth'
@@ -34,10 +39,10 @@ image_dataloaders = {
 }
 
 print('\nLoading model...')
-image_model = models.transfer.FineTuneModel(len(image_dataset.classes))
+image_model = models.additive.FineTuneModel(len(image_dataset.classes))
 image_model = image_model.to(core.device)
 image_model_saved_path = '/tmp/tobacco_image_model_bilinear_norm_01.pth'
-if path.exists(image_model_saved_path):
+if path.exists(image_model_saved_path) and core.load_dataset:
     image_model = torch.load(image_model_saved_path)
 else:
     image_optimizer = torch.optim.SGD(image_model.parameters(), lr=model.image_initial_lr,

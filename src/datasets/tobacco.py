@@ -45,26 +45,18 @@ class TobaccoImageDataset(Dataset):
         return len(self.samples)
 
     def preprocess(self):
-        white = (255, 255, 255)
         t = {
             'train': transforms.Compose([
-                # transforms.Resize(core.image_width, interpolation=core.image_interpolation),
-                # transforms.Lambda(lambda img: TF.pad(img, (l_pad(img), 0, r_pad(img), 0), fill=white)),
                 transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
-                # transforms.Lambda(lambda img: TF.rotate(img, degree(), fill=white)),  # hard to tell if useful
                 transforms.ToTensor(),
                 transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
             ]),
             'val': transforms.Compose([
-                # transforms.Resize(core.image_width, interpolation=core.image_interpolation),
-                # transforms.Lambda(lambda img: TF.pad(img, (l_pad(img), 0, r_pad(img), 0), fill=white)),
                 transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
                 transforms.ToTensor(),
                 transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
             ]),
             'test': transforms.Compose([
-                # transforms.Resize(core.image_width, interpolation=core.image_interpolation),
-                # transforms.Lambda(lambda img: TF.pad(img, (l_pad(img), 0, r_pad(img), 0), fill=white)),
                 transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
                 transforms.ToTensor(),
                 transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
