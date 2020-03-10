@@ -1,10 +1,15 @@
 import copy
+import math
 import time
 
 import torch
+from torch.autograd import Variable
+from torch.optim.lr_scheduler import LambdaLR
+
+from conf import model, core
 
 
-def train_image_model(model, dataloaders, criterion, optimizer, scheduler, device, lengths, num_epochs=25):
+def train_image_model(model, dataloaders, criterion, optimizer, scheduler, lengths, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -23,30 +28,46 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
             running_loss = 0.0
             running_corrects = 0
 
+            counter = 0
             # Iterate over data.
-            for data_inputs, labels in dataloaders[phase]:
-                data_inputs = data_inputs.to(device)
-                labels = labels.to(device)
+            for inputs, labels in dataloaders[phase]:
+                if core.use_gpu:
+                    inputs, labels = Variable(inputs.float().cuda()), Variable(labels.long().cuda())
+                else:
+                    inputs, labels = Variable(inputs), Variable(labels)
 
-                # zero the parameter gradients
+                # Set gradient to zero to delete history of computations in previous epoch. Track operations so that
+                # differentiation can be done automatically.
                 optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(data_inputs)
+                    outputs = model(inputs)
 
                     _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)  # merge somehow
+
+                    loss = criterion(outputs, labels)
+                    # print('loss done')
+                    # Just so that you can keep track that something's happening and don't feel like the program
+                    # isn't running.
+                    if counter % 10 == 0:
+                        print("Reached iteration ", counter)
+                    counter += 1
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
+                        # print('loss backward')
                         loss.backward()
+                        # print('done loss backward')
                         optimizer.step()
+                        # print('done optim')
 
-                # statistics
-                running_loss += loss.item() * data_inputs.size(0)
+                # print evaluation statistics
+                running_loss += loss.item()
                 running_corrects += torch.sum(preds == labels.data)
+                # print('running correct =', running_corrects)
+
             if phase == 'train':
                 scheduler.step()
 
@@ -73,18 +94,25 @@ def train_image_model(model, dataloaders, criterion, optimizer, scheduler, devic
     return model
 
 
-def evaluate_model(model, dataloader, device, length):
+def evaluate_model(model, dataloader, length):
+    model.eval()
     running_corrects = 0
 
-    model.eval()
-    for data_inputs, labels in dataloader:
-        data_inputs = data_inputs.to(device)
-        labels = labels.to(device)
+    for inputs, labels in dataloader:
+        if core.use_gpu:
+            inputs, labels = Variable(inputs.float().cuda()), Variable(labels.long().cuda())
+        else:
+            inputs, labels = Variable(inputs), Variable(labels)
 
         with torch.set_grad_enabled(False):
-            outputs = model(data_inputs)
+            outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
 
         running_corrects += torch.sum(preds == labels.data)
 
     return float(running_corrects) / length
+
+
+def custom_scheduler(optimizer):
+    lr_lambda = lambda epoch: model.image_initial_lr * math.sqrt(1 - epoch / model.image_epochs)
+    return LambdaLR(optimizer, lr_lambda=lr_lambda)

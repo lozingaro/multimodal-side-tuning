@@ -1,7 +1,7 @@
 import copy
+from collections import OrderedDict
 
 import numpy as np
-import torch
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, random_split
 from torchvision import datasets, transforms
@@ -23,7 +23,7 @@ class TobaccoImageDataset(Dataset):
         self.loader = full.loader
 
         if lengths is None:
-            self.lentghs = [800, 200, 3482 - 800 - 200]
+            self.lentghs = [800, 200, 2482]
         else:
             self.lentghs = lengths
 
@@ -31,11 +31,11 @@ class TobaccoImageDataset(Dataset):
         self.train = random_dataset_split[0]
         self.val = random_dataset_split[1]
         self.test = random_dataset_split[2]
-        self.datasets = {
+        self.datasets = OrderedDict({
             'train': self.train,
             'val': self.val,
             'test': self.test,
-        }
+        })
         self.preprocess()
 
     def __getitem__(self, index):
@@ -101,7 +101,6 @@ class TobaccoImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # d = TobaccoImageDataset(core.root_dir, list(core.lengths.values()))
-    d = torch.load('/tmp/tobacco_image_dataset_bilinear_norm.pth')
+    d = TobaccoImageDataset(core.root_dir, list(core.lengths.values()))
     d.check_distributions()
     plt.show()
