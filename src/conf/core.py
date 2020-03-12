@@ -1,10 +1,7 @@
-import os
 import torch
 from PIL import Image
 
-use_gpu = torch.cuda.is_available()
-if use_gpu:
-    torch.cuda.set_device("cuda:0")
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 root_dir = '/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg'
 seed = 42
 batch_sizes = {

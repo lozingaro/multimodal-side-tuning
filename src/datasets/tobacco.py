@@ -13,7 +13,6 @@ class TobaccoImageDataset(Dataset):
     def __init__(self, root, lengths=None):
         self.root = root
         full = datasets.ImageFolder(self.root)  # build a proper vision dataset
-
         self.imgs = copy.deepcopy(full.samples)
         self.extensions = full.extensions  # maybe useless?
         self.class_to_idx = full.class_to_idx  # maybe useless?

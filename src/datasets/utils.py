@@ -1,8 +1,5 @@
-import random
-
 import matplotlib.pyplot as plt
 import numpy as np
-import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
@@ -22,35 +19,6 @@ def imshow(inp, title=None):
     if title is not None:
         plt.title(title)
     plt.pause(0.001)  # pause a bit so that plots are updated
-
-
-def lr_pad(img):
-    return int(abs(img.height - core.image_width) // 2)
-
-
-def l_pad(img):
-    if abs(img.height - core.image_width) % 2 == 0:
-        return lr_pad(img)
-    else:
-        return lr_pad(img) + 1
-
-
-def r_pad(img):
-    return lr_pad(img)
-
-
-def degree():
-    r = random.uniform(0, 100)
-    p = [50, 66, 82]
-    d = [0, 90, 180, 270]
-    if r < p[0]:
-        return d[0]
-    elif r < p[1]:
-        return d[1]
-    elif r < p[2]:
-        return d[2]
-    else:
-        return d[3]
 
 
 if __name__ == '__main__':

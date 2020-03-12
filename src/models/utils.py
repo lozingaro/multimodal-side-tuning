@@ -1,108 +1,106 @@
 import copy
-import math
-import time
 
 import torch
-from torch.autograd import Variable
-from torch.optim.lr_scheduler import LambdaLR
 
-from conf import model, core
+from conf import core
 
 
-def train_image_model(model, dataloaders, criterion, optimizer, scheduler, lengths, num_epochs=25):
-    since = time.time()
-
-    best_model_wts = copy.deepcopy(model.state_dict())
+def train_eval_test(model, dataloaders, optimizer, criterion, scheduler, lengths, num_epochs=25):
+    best_model = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()  # Set model to training mode
-            else:
-                model.eval()  # Set model to evaluate mode
+        train_running_loss, train_running_corrects = _train(model, dataloaders['train'], optimizer, criterion)
+        train_epoch_loss = train_running_loss / lengths['train']
+        train_epoch_acc = float(train_running_corrects) / lengths['train']
+        print('{} Loss: {:.4f} Acc: {:.4f}'.format('train', train_epoch_loss, train_epoch_acc))
 
-            running_loss = 0.0
-            running_corrects = 0
+        val_running_loss, val_running_corrects = _eval(model, dataloaders['val'], criterion)
+        val_epoch_loss = val_running_loss / lengths['val']
+        val_epoch_acc = float(val_running_corrects) / lengths['val']
+        print('{} Loss: {:.4f} Acc: {:.4f}'.format('val', val_epoch_loss, val_epoch_acc))
 
-            counter = 0
-            # Iterate over data.
-            for inputs, labels in dataloaders[phase]:
-                if core.use_gpu:
-                    inputs, labels = Variable(inputs.float().cuda()), Variable(labels.long().cuda())
-                else:
-                    inputs, labels = Variable(inputs), Variable(labels)
+        scheduler.step()
 
-                # Set gradient to zero to delete history of computations in previous epoch. Track operations so that
-                # differentiation can be done automatically.
-                optimizer.zero_grad()
-
-                # forward
-                # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
-
-                    _, preds = torch.max(outputs, 1)
-
-                    loss = criterion(outputs, labels)
-                    # print('loss done')
-                    # Just so that you can keep track that something's happening and don't feel like the program
-                    # isn't running.
-                    if counter % 10 == 0:
-                        print("Reached iteration ", counter)
-                    counter += 1
-
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        # print('loss backward')
-                        loss.backward()
-                        # print('done loss backward')
-                        optimizer.step()
-                        # print('done optim')
-
-                # print evaluation statistics
-                running_loss += loss.item()
-                running_corrects += torch.sum(preds == labels.data)
-                # print('running correct =', running_corrects)
-
-            if phase == 'train':
-                scheduler.step()
-
-            epoch_loss = running_loss / lengths[phase]
-            epoch_acc = float(running_corrects) / lengths[phase]
-
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
-
-            # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                best_model_wts = copy.deepcopy(model.state_dict())
+        if val_epoch_acc > best_acc:
+            best_acc = val_epoch_acc
+            best_model = copy.deepcopy(model.state_dict())
 
         print()
 
-    time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('Best val Acc: {:4f}'.format(best_acc))
 
     # load best model weights
-    model.load_state_dict(best_model_wts)
+    model.load_state_dict(best_model)
+
+    test_running_corrects = _test(model, dataloaders['test'])
+    test_acc = float(test_running_corrects) / lengths['test']
+    print('{} Acc: {:.4f}'.format('test', test_acc))
 
     return model
 
 
-def evaluate_model(model, dataloader, length):
-    model.eval()
+def _train(model, dataloader, optimizer, criterion):
+    model.train()  # Set model to training mode
+
+    running_loss = 0.0
     running_corrects = 0
 
     for inputs, labels in dataloader:
-        if core.use_gpu:
-            inputs, labels = Variable(inputs.float().cuda()), Variable(labels.long().cuda())
-        else:
-            inputs, labels = Variable(inputs), Variable(labels)
+        inputs = inputs.to(core.device)
+        labels = labels.to(core.device)
+
+        # Zero the parameter gradients erasing history
+        optimizer.zero_grad()
+
+        # Forward
+        outputs = model(inputs)
+        _, preds = torch.max(outputs, 1)
+        loss = criterion(outputs, labels)
+
+        # Backward
+        loss.backward()
+        optimizer.step()
+
+        # Print evaluation statistics
+        running_loss += loss.item() * inputs.size(0)
+        running_corrects += torch.sum(preds == labels.data)
+
+    return running_loss, running_corrects
+
+
+def _eval(model, dataloader, criterion):
+    model.eval()
+
+    running_loss = 0.0
+    running_corrects = 0
+
+    for inputs, labels in dataloader:
+        inputs = inputs.to(core.device)
+        labels = labels.to(core.device)
+
+        with torch.set_grad_enabled(False):
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            loss = criterion(outputs, labels)
+
+        running_loss += loss.item() * inputs.size(0)
+        running_corrects += torch.sum(preds == labels.data)
+
+    return running_loss, running_corrects
+
+
+def _test(model, dataloader):
+    model.eval()
+
+    running_corrects = 0
+
+    for inputs, labels in dataloader:
+        inputs = inputs.to(core.device)
+        labels = labels.to(core.device)
 
         with torch.set_grad_enabled(False):
             outputs = model(inputs)
@@ -110,9 +108,4 @@ def evaluate_model(model, dataloader, length):
 
         running_corrects += torch.sum(preds == labels.data)
 
-    return float(running_corrects) / length
-
-
-def custom_scheduler(optimizer):
-    lr_lambda = lambda epoch: model.image_initial_lr * math.sqrt(1 - epoch / model.image_epochs)
-    return LambdaLR(optimizer, lr_lambda=lr_lambda)
+    return running_corrects

@@ -1,6 +1,6 @@
-image_freeze = True
-image_initial_lr = .01
+image_freeze = False
+image_initial_lr = .1
 image_momentum = .9
-image_epochs = 100
+image_max_epochs = 200
 image_alpha = .5
 
