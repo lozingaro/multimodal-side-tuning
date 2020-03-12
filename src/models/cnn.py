@@ -1,13 +1,20 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 
-class CNN(nn.Module):
-    pass
-    # def __init__(self, in_channels, out_channels):
-    #     super(CNN).__init__()
-    #     self.embedding = torchtext.
-    #     self.conv = nn.Conv1d(in_channels, out_channels)
-    #     self.max = nn.MaxPool1d()
-    #     self.flatten = torch.flatten()
-    #     self.drop = nn.Dropout(.5)
-    #     self.fc = nn.Linear(num_classes)
+class TextSentiment(nn.Module):
+    def __init__(self, vocab_size, embed_dim, num_classes):
+        super().__init__()
+        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
+        self.fc = nn.Linear(embed_dim, num_classes)
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = .5
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+        self.fc.weight.data.uniform_(-initrange, initrange)
+        self.fc.bias.data.zero_()
+
+    def forward(self, text, offsets):
+        embedded = self.embedding(text, offsets)
+        return self.fc(embedded)

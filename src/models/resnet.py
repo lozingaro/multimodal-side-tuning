@@ -90,8 +90,7 @@ class SideTuneModel(nn.Module):
         weights = [self.alpha, 1 - self.alpha]
         outputs_to_merge = [base_encoding] + [side_encoding]
         merged_encoding = torch.zeros_like(base_encoding)
-        if core.use_gpu:
-            merged_encoding.cuda()
+        merged_encoding = merged_encoding.to(core.device)
 
         for a, out in zip(weights, outputs_to_merge):
             merged_encoding += a * out

@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, random_split
 from torchvision import datasets, transforms
 
-from conf import core
+from conf import dataset
 
 
 class TobaccoImageDataset(Dataset):
@@ -44,21 +44,25 @@ class TobaccoImageDataset(Dataset):
         return len(self.samples)
 
     def preprocess(self):
+        w = dataset.image_width
+        i = dataset.image_interpolation
+        m = dataset.image_mean_normalization
+        s = dataset.image_std_normalization
         t = {
             'train': transforms.Compose([
-                transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
+                transforms.Resize((w, w), interpolation=i),
                 transforms.ToTensor(),
-                transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
+                transforms.Normalize(m, s),
             ]),
             'val': transforms.Compose([
-                transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
+                transforms.Resize((w, w), interpolation=i),
                 transforms.ToTensor(),
-                transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
+                transforms.Normalize(m, s),
             ]),
             'test': transforms.Compose([
-                transforms.Resize((core.image_width, core.image_width), interpolation=core.image_interpolation),
+                transforms.Resize((w, w), interpolation=i),
                 transforms.ToTensor(),
-                transforms.Normalize(core.image_mean_normalization, core.image_std_normalization),
+                transforms.Normalize(m, s),
             ]),
         }
 
@@ -100,6 +104,6 @@ class TobaccoImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    d = TobaccoImageDataset(core.root_dir, list(core.lengths.values()))
+    d = TobaccoImageDataset(dataset.image_root_dir, list(dataset.image_len.values()))
     d.check_distributions()
     plt.show()
