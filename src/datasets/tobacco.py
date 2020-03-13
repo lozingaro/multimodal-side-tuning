@@ -4,13 +4,14 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, random_split
+from torchtext.datasets import text_classification
 from torchvision import datasets, transforms
 
-from conf import dataset
+import conf
 
 
 class TobaccoImageDataset(Dataset):
-    def __init__(self, root, lengths=None):
+    def __init__(self, root, splits=None):
         self.root = root
         full = datasets.ImageFolder(self.root)  # build a proper vision dataset
         self.imgs = copy.deepcopy(full.samples)
@@ -21,10 +22,10 @@ class TobaccoImageDataset(Dataset):
         self.targets = full.targets
         self.loader = full.loader
 
-        if lengths is None:
+        if splits is None:
             self.lentghs = [800, 200, 2482]
         else:
-            self.lentghs = lengths
+            self.lentghs = splits.values()
 
         random_dataset_split = random_split(self, lengths=self.lentghs)
         self.train = random_dataset_split[0]
@@ -44,10 +45,10 @@ class TobaccoImageDataset(Dataset):
         return len(self.samples)
 
     def preprocess(self):
-        w = dataset.image_width
-        i = dataset.image_interpolation
-        m = dataset.image_mean_normalization
-        s = dataset.image_std_normalization
+        w = conf.dataset.image_width
+        i = conf.dataset.image_interpolation
+        m = conf.dataset.image_mean_normalization
+        s = conf.dataset.image_std_normalization
         t = {
             'train': transforms.Compose([
                 transforms.Resize((w, w), interpolation=i),
@@ -103,7 +104,31 @@ class TobaccoImageDataset(Dataset):
         plt.title('class frequency distribution')
 
 
+class TobaccoTextDataset(Dataset):
+    def __init__(self, root, splits):
+        self.root = root
+        self.original_train_dataset, self.test = text_classification.DATASETS['AG_NEWS'](
+            root=self.root,
+            ngrams=conf.dataset.text_ngrams,
+            vocab=None)
+
+        random_dataset_split = random_split(self.original_train_dataset, [splits['train'], splits['val']])
+        self.train = random_dataset_split[0]
+        self.val = random_dataset_split[1]
+        self.datasets = OrderedDict({
+            'train': self.train,
+            'val': self.val,
+            'test': self.test
+        })
+
+    def get_vocab(self):
+        return self.original_train_dataset.get_vocab()
+
+    def get_labels(self):
+        return self.original_train_dataset.get_labels()
+
+
 if __name__ == '__main__':
-    d = TobaccoImageDataset(dataset.image_root_dir, list(dataset.image_len.values()))
+    d = TobaccoImageDataset(conf.dataset.image_root_dir, conf.dataset.image_lengths)
     d.check_distributions()
     plt.show()
