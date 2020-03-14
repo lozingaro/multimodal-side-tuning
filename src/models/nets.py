@@ -4,9 +4,45 @@ import torchvision
 from .utils import merge
 
 
-class SideTuneModel(torch.nn.Module):
+# TODO test cnn 1d fine tuning, for the side part go directly to full side net
+class CNN1D(torch.nn.Module):
+    def __init__(self, vocab_size, embed_dim, num_classes):
+        super().__init__()
+        self.embedding = torch.nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
+        self.fc = torch.nn.Linear(embed_dim, num_classes)
+
+    def forward(self, x):
+        x = self.embedding(x)
+        return self.fc(x)
+
+
+class MobileNetV2SideTuneModel(torch.nn.Module):
     def __init__(self, num_classes, alpha=.5):
-        super(SideTuneModel, self).__init__()
+        super(MobileNetV2SideTuneModel, self).__init__()
+        self.alpha = alpha
+        self.base = torchvision.models.mobilenet_v2(pretrained=True)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+        self.side = torchvision.models.mobilenet_v2(pretrained=True)
+        self.side.classifier[1] = torch.nn.Linear(self.side.last_channel, num_classes)
+        self.merge = merge
+
+    def forward(self, x):
+        s_x = x.clone()
+
+        b_x = self.base.features(x)
+        s_x = self.side.features(s_x)
+
+        x_merge = self.merge(self.alpha, b_x, s_x)
+        x_merge = x_merge.mean([2, 3])
+        x_merge = self.side.classifier(x_merge)
+
+        return x_merge
+
+
+class ReseNetSideTuneModel(torch.nn.Module):
+    def __init__(self, num_classes, alpha=.5):
+        super(ReseNetSideTuneModel, self).__init__()
         self.alpha = alpha
         self.base = torchvision.models.resnet50(pretrained=True)
         for param in self.base.parameters():

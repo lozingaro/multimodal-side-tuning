@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import TobaccoImageDataset
-from models.mobilenet import SideTuneModel
+from models.nets import MobileNetV2SideTuneModel
 from models.utils import TrainingPipeline
 
 filterwarnings("ignore")
@@ -30,7 +30,7 @@ image_dataloaders = {
 print('done.')
 
 print('\nModel train and evaluation...')
-image_model = SideTuneModel(len(image_dataset.classes), alpha=conf.model.image_alpha).to(conf.core.device)
+image_model = MobileNetV2SideTuneModel(len(image_dataset.classes), alpha=conf.model.image_alpha).to(conf.core.device)
 image_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 image_optimizer = torch.optim.SGD(image_model.parameters(), lr=conf.model.image_lr, momentum=conf.model.momentum)
 image_scheduler = torch.optim.lr_scheduler.LambdaLR(image_optimizer,

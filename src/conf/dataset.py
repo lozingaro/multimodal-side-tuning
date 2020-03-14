@@ -1,7 +1,8 @@
 from PIL import Image
 
-# Image
 image_root_dir = '/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg'
+text_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-small'
+
 batch_sizes = {
     'train': 16,
     'val': 4,
@@ -17,8 +18,6 @@ image_std_normalization = [0.229, 0.224, 0.225]
 image_interpolation = Image.BILINEAR
 image_width = 384
 
-# Text
-text_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-small'
 text_ngrams = 1
 text_vocab_dim = 500
 text_embedding_dim = 300

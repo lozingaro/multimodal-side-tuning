@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import conf
 from datasets.tobacco import TobaccoTextDataset
 from models import TrainingPipeline
-from models.cnn import CNN1D
+from models.nets import CNN1D
 
 filterwarnings("ignore")
 

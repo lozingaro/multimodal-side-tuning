@@ -1,6 +1,6 @@
 import copy
 import os
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 import numpy as np
 import spacy
@@ -113,13 +113,11 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         self.classes = []
         self.class_to_idx = {}
         self.targets = []
-        self.texts = []
-        self._populate()
-        self.tokens = []
-        self._tokenization()
+        self.samples = []
+        self._preprocess()
 
         if splits is None:
-            self.lentghs = [1, 1, 1]
+            self.lentghs = [800, 200, 2482]
         else:
             self.lentghs = splits.values()
 
@@ -133,13 +131,24 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
             'test': self.test
         })
 
-    def __getitem__(self, item):
-        return [i.vector for i in self.tokens[item]], self.texts[item]  # TODO each document is a 500 x 300 vectors
+    def __getitem__(self, index):
+        tokens = torch.zeros((len(self.samples[index]), 300))
+        for i in range(len(self.samples[index])):
+            tokens[i] = torch.as_tensor(self.samples[index][i].vector)
+
+        if len(self.samples[index]) <= conf.dataset.text_vocab_dim:
+            res = torch.nn.functional.pad(tokens, (0, 0, 0, conf.dataset.text_vocab_dim - len(self.samples[index])))
+        else:
+            res = torch.narrow(tokens, 0, 0, conf.dataset.text_vocab_dim)
+            print('tensor for tokens greater then model vocabulary input!!')
+
+        return res, self.targets[index]
 
     def __len__(self):
-        return len(self.texts)
+        return len(self.targets)
 
-    def _populate(self):
+    def _preprocess(self):
+        nlp = spacy.load('/data01/stefanopio.zingaro/datasets/en_vectors_crawl_lg')
         for root, dirs, files in os.walk(self.root_dir, topdown=True):
             for i, label in enumerate(dirs):
                 self.classes.append(label)
@@ -147,14 +156,12 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
                 for root_label, _, filenames in os.walk(os.path.join(self.root_dir, label), topdown=True):
                     for name in filenames:
                         with open(os.path.join(root_label, name), encoding=self.encoding) as f:
-                            text = f.read().replace('\n', '')
-                            self.texts.append(text)
+                            doc = nlp(f.read().replace('\n', ' ').lower())
+                            tokens = [token for token in doc if not token.is_punct and not token.is_stop]
+                            words = [token.text for token in doc if not token.is_punct and not token.is_stop]
+                            unique_tokens = [token for token, (word, freq) in zip(tokens, Counter(words).items()) if freq == 1]
+                            self.samples.append(unique_tokens)
                             self.targets.append(self.class_to_idx[label])
-
-    def _tokenization(self):
-        nlp = spacy.load('/data01/stefanopio.zingaro/datasets/en_vectors_crawl_lg')
-        for i, doc in enumerate(nlp.pipe(self.texts, disable=['parser', 'tagger', 'ner'])):
-            self.tokens.append([doc])
 
 
 if __name__ == '__main__':
@@ -162,3 +169,5 @@ if __name__ == '__main__':
     # d.check_distributions()
     # plt.show()
     d = TobaccoTextDataset('/data01/stefanopio.zingaro/datasets/QS-OCR-small')
+    e = d[0]
+    print(e[0].size())
