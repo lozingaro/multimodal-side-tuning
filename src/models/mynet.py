@@ -1,8 +1,9 @@
+import torch
 import torch.nn as nn
 from torchvision import models
 from .utils import merge
 
-
+# TODO create side network custom
 class SideTuneModel(nn.Module):
     def __init__(self, num_classes, alpha=.5):
         super(SideTuneModel, self).__init__()
@@ -13,6 +14,9 @@ class SideTuneModel(nn.Module):
         self.side = models.mobilenet_v2(pretrained=True)
         self.side.classifier[1] = nn.Linear(self.side.last_channel, num_classes)
         self.merge = merge
+        self.side.fc = torch.nn.Linear(self.side.fc.in_features, 300)
+        # concatenate
+        # Linear(600, num_classes)
 
     def forward(self, x):
         s_x = x.clone()

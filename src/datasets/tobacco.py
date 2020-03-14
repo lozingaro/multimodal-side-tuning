@@ -1,10 +1,12 @@
 import copy
+import os
 from collections import OrderedDict
 
 import numpy as np
+import spacy
+import torch
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, random_split
-from torchtext.datasets import text_classification
 from torchvision import datasets, transforms
 
 import conf
@@ -104,31 +106,59 @@ class TobaccoImageDataset(Dataset):
         plt.title('class frequency distribution')
 
 
-class TobaccoTextDataset(Dataset):
-    def __init__(self, root, splits):
-        self.root = root
-        self.original_train_dataset, self.test = text_classification.DATASETS['AG_NEWS'](
-            root=self.root,
-            ngrams=conf.dataset.text_ngrams,
-            vocab=None)
+class TobaccoTextDataset(torch.utils.data.Dataset):
+    def __init__(self, root_dir, splits=None, encoding='utf-8'):
+        self.root_dir = root_dir
+        self.encoding = encoding
+        self.classes = []
+        self.class_to_idx = {}
+        self.targets = []
+        self.texts = []
+        self._populate()
+        self.tokens = []
+        self._tokenization()
 
-        random_dataset_split = random_split(self.original_train_dataset, [splits['train'], splits['val']])
+        if splits is None:
+            self.lentghs = [1, 1, 1]
+        else:
+            self.lentghs = splits.values()
+
+        random_dataset_split = random_split(self, lengths=self.lentghs)
         self.train = random_dataset_split[0]
         self.val = random_dataset_split[1]
+        self.test = random_dataset_split[2]
         self.datasets = OrderedDict({
             'train': self.train,
             'val': self.val,
             'test': self.test
         })
 
-    def get_vocab(self):
-        return self.original_train_dataset.get_vocab()
+    def __getitem__(self, item):
+        return [i.vector for i in self.tokens[item]], self.texts[item]  # TODO each document is a 500 x 300 vectors
 
-    def get_labels(self):
-        return self.original_train_dataset.get_labels()
+    def __len__(self):
+        return len(self.texts)
+
+    def _populate(self):
+        for root, dirs, files in os.walk(self.root_dir, topdown=True):
+            for i, label in enumerate(dirs):
+                self.classes.append(label)
+                self.class_to_idx[label] = i
+                for root_label, _, filenames in os.walk(os.path.join(self.root_dir, label), topdown=True):
+                    for name in filenames:
+                        with open(os.path.join(root_label, name), encoding=self.encoding) as f:
+                            text = f.read().replace('\n', '')
+                            self.texts.append(text)
+                            self.targets.append(self.class_to_idx[label])
+
+    def _tokenization(self):
+        nlp = spacy.load('/data01/stefanopio.zingaro/datasets/en_vectors_crawl_lg')
+        for i, doc in enumerate(nlp.pipe(self.texts, disable=['parser', 'tagger', 'ner'])):
+            self.tokens.append([doc])
 
 
 if __name__ == '__main__':
-    d = TobaccoImageDataset(conf.dataset.image_root_dir, conf.dataset.image_lengths)
-    d.check_distributions()
-    plt.show()
+    # d = TobaccoImageDataset(conf.dataset.image_root_dir, conf.dataset.image_lengths)
+    # d.check_distributions()
+    # plt.show()
+    d = TobaccoTextDataset('/data01/stefanopio.zingaro/datasets/QS-OCR-small')

@@ -39,7 +39,7 @@ if __name__ == '__main__':
         transforms.Normalize(conf.dataset.image_mean_normalization, conf.dataset.image_std_normalization),
     ])
     d = ImageFolder(root='/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg', transform=t)
-    dataloader = DataLoader(d, batch_size=conf.dataset.image_batch_sizes['train'], shuffle=True)
+    dataloader = DataLoader(d, batch_size=conf.dataset.batch_sizes['train'], shuffle=True)
     one_batch_inputs, one_batch_classes = next(iter(dataloader))
-    out = make_grid(one_batch_inputs, nrow=conf.dataset.image_batch_sizes['train'] // 4)
+    out = make_grid(one_batch_inputs, nrow=conf.dataset.batch_sizes['train'] // 4)
     imshow(out)

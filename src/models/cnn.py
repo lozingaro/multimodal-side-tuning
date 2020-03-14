@@ -1,7 +1,8 @@
 import torch.nn as nn
 
 
-class TextSentiment(nn.Module):
+# TODO test cnn 1d fine tuning, for the side part go directly to full side net
+class CNN1D(nn.Module):
     def __init__(self, vocab_size, embed_dim, num_classes):
         super().__init__()
         self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
