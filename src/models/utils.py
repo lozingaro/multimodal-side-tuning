@@ -1,27 +1,29 @@
 import copy
 import time
+
 import torch
-import conf
 
 
 class TrainingPipeline:
-    def __init__(self, model, optimizer, criterion, scheduler):
+    def __init__(self, model, optimizer, criterion, scheduler=None, device='cpu'):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
+        self.device = device
 
-    def run(self, data_train, data_eval, data_test, num_epochs):
+    def run(self, data_train, data_eval=None, data_test=None, num_epochs=5):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
 
         for epoch in range(num_epochs):
             start_time = time.time()
-            train_loss, train_acc = self.train_(data_train)
-            valid_loss, valid_acc = self.eval_(data_eval)
+            train_loss, train_acc = self.__train(data_train)
+            if data_eval is not None:
+                valid_loss, valid_acc = self.__eval(data_eval)
 
-            if valid_acc > best_valid_acc:
-                best_model = copy.deepcopy(self.model.state_dict())
+                if valid_acc > best_valid_acc:
+                    best_model = copy.deepcopy(self.model.state_dict())
 
             secs = int(time.time() - start_time)
             mins = secs / 60
@@ -29,15 +31,18 @@ class TrainingPipeline:
 
             print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
             print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}% (train)')
-            print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}% (valid)')
+            if data_eval is not None:
+                print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}% (valid)')
 
         self.model.load_state_dict(best_model)  # load best model weights
 
-        print('Checking the results of test dataset...')
-        test_loss, test_acc = self.eval_(data_test)
-        print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}% (test)')
+        if data_test is not None:
+            print('Checking the results of test dataset...')
+            test_loss, test_acc = self.__eval(data_test)
+            print(f'\tBest Acc: {best_valid_acc * 100:.1f}% (valid)')
+            print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}% (test)')
 
-    def train_(self, data):
+    def __train(self, data):
         self.model.train()
 
         train_loss = 0.0
@@ -45,7 +50,7 @@ class TrainingPipeline:
 
         for inputs, labels in data:
             self.optimizer.zero_grad()
-            inputs, labels = inputs.to(conf.core.device), labels.to(conf.core.device)
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
             outputs = self.model(inputs)
             loss = self.criterion(outputs, labels)
             train_loss += loss.item() * inputs.size(0)
@@ -54,18 +59,19 @@ class TrainingPipeline:
             _, preds = torch.max(outputs, 1)
             train_acc += torch.sum(preds == labels.data)
 
-        self.scheduler.step() if self.scheduler is not None else 2
+        if self.scheduler is not None:
+            self.scheduler.step()
 
         return train_loss / len(data.dataset), train_acc / float(len(data.dataset))
 
-    def eval_(self, data):
+    def __eval(self, data):
         self.model.eval()
 
         eval_loss = 0.0
         eval_acc = 0
 
         for inputs, labels in data:
-            inputs, labels = inputs.to(conf.core.device), labels.to(conf.core.device)
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
             with torch.no_grad():
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
@@ -79,8 +85,8 @@ class TrainingPipeline:
 def merge(alpha, base_encoding, side_encoding):
     weights = [alpha, 1 - alpha]
     outputs_to_merge = [base_encoding] + [side_encoding]
-    merged_encoding = torch.zeros_like(base_encoding)
-    merged_encoding = merged_encoding.to(conf.core.device)
+    merged_encoding = torch.zeros_like(base_encoding, device=base_encoding.device)
+    merged_encoding = merged_encoding
 
     for a, out in zip(weights, outputs_to_merge):
         merged_encoding += a * out

@@ -1,2 +1,2 @@
-from .utils import *
 from .nets import *
+from .utils import *

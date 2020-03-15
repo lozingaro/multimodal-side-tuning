@@ -18,6 +18,8 @@ image_std_normalization = [0.229, 0.224, 0.225]
 image_interpolation = Image.BILINEAR
 image_width = 384
 
-text_ngrams = 1
-text_vocab_dim = 500
+text_ngrams = 2
+text_words_per_doc = 500
 text_embedding_dim = 300
+text_spacy_model_path = '/data01/stefanopio.zingaro/datasets/spacy/en_vectors_crawl_lg'
+text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/fasttext/cc.en.300.bin'
