@@ -12,6 +12,31 @@ from matplotlib import pyplot as plt
 from torchvision import datasets, transforms
 
 
+class TobaccoFusionDataset(torch.utils.data.Dataset):
+    def __init__(self, image_dataset, text_dataset, splits=None):
+        super(TobaccoFusionDataset, self).__init__()
+        if splits is None:
+            self.lengths = [800, 200, 2482]
+        else:
+            self.lengths = splits.values()
+        self.image_dataset = image_dataset
+        self.text_dataset = text_dataset
+        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
+        self.datasets = OrderedDict({
+            'train': random_dataset_split[0],
+            'val': random_dataset_split[1],
+            'test': random_dataset_split[2]
+        })
+
+    def __getitem__(self, index):
+        out_image = self.image_dataset[index]
+        out_text = self.text_dataset[index][0]
+        return (out_image[0], out_text), out_image[1]
+
+    def __len__(self):
+        return len(self.image_dataset.targets)
+
+
 class TobaccoImageDataset(torch.utils.data.Dataset):
     def __init__(self, root, image_width, image_interpolation, image_mean_norm, image_std_norm, splits=None):
         self.root = root
@@ -20,9 +45,9 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
         self.image_mean_norm = image_mean_norm
         self.image_std_norm = image_std_norm
         if splits is None:
-            self.lentghs = [800, 200, 2482]
+            self.lengths = [800, 200, 2482]
         else:
-            self.lentghs = splits.values()
+            self.lengths = splits.values()
 
         full = datasets.ImageFolder(self.root)  # builds a proper vision dataset
         self.imgs = copy.deepcopy(full.samples)
@@ -33,7 +58,7 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
         self.targets = full.targets
         self.loader = full.loader
 
-        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lentghs)
+        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
         self.datasets = OrderedDict({
             'train': random_dataset_split[0],
             'val': random_dataset_split[1],
@@ -42,7 +67,7 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
         self._preprocess()
 
     def __getitem__(self, index):
-        return self.samples[index], self.targets[index]
+        return self.samples[index], torch.tensor(self.targets[index], dtype=torch.long)
 
     def __len__(self):
         return len(self.samples)
@@ -91,16 +116,16 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         self.context = context
         self.num_grams = num_grams
         if splits is None:
-            self.lentghs = [800, 200, 2482]
+            self.lengths = [800, 200, 2482]
         else:
-            self.lentghs = splits.values()
+            self.lengths = splits.values()
         self.encoding = encoding
         self.nlp_model_path = nlp_model_path
         self.classes = []
         self.class_to_idx = {}
         self.targets = []
         self.texts = []
-        self.samples = []
+        self.tokens = []
         if self.nlp_model_path is None:
             self.nlp = None
             self.vocab = set()
@@ -110,9 +135,9 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         self._preprocess()
         if self.nlp_model_path is None:
             self.token_to_idx = {token: i for i, token in enumerate(self.vocab)}
-        self.tensors = []
+        self.samples = []
         self._load_tensors()
-        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lentghs)
+        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
         self.datasets = OrderedDict({
             'train': random_dataset_split[0],
             'val': random_dataset_split[1],
@@ -120,28 +145,31 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         })
 
     def __getitem__(self, index):
-        return self.tensors[index], self.targets[index]
+        return self.samples[index], torch.tensor(self.targets[index], dtype=torch.long)
 
     def __len__(self):
         return len(self.targets)
 
     def _load_tensors(self):
-        for token in self.samples:
+        for tokens in self.tokens:
+            padding = self.context - len(tokens)
             if self.nlp_model_path is not None:
-                tokens_tensor = torch.tensor([t.vector for t in token])
-            else:
-                tokens_tensor = torch.tensor([self.token_to_idx[t] for t in token], dtype=torch.long)
-            if len(token) == 0:
-                tokens_tensor = torch.zeros((500, 300))
-            if len(token) < self.context:
-                padding = self.context - len(token)
-                if self.nlp_model_path is not None:
-                    tokens_tensor = F.pad(tokens_tensor, (0, 0, 0, padding))
+                if len(tokens) == 0:
+                    tokens_tensor = torch.zeros((500, 300))
                 else:
-                    tokens_tensor = F.pad(tokens_tensor, (0, self.context - len(token)))
+                    tokens_tensor = torch.tensor([t.vector for t in tokens])
+                    if len(tokens) < self.context:
+                        tokens_tensor = F.pad(tokens_tensor, (0, 0, 0, padding))
+                    else:
+                        tokens_tensor = tokens_tensor[:self.context]
             else:
-                tokens_tensor = tokens_tensor[:self.context]
-            self.tensors.append(tokens_tensor)
+                if len(tokens) == 0:
+                    tokens_tensor = torch.zeros(500, dtype=torch.long)
+                else:
+                    tokens_tensor = torch.tensor([self.token_to_idx[t] for t in tokens], dtype=torch.long)
+                    tokens_tensor = F.pad(tokens_tensor, (0, padding))
+
+            self.samples.append(tokens_tensor)
 
     def _preprocess(self):
         replace = lambda c: c
@@ -157,7 +185,7 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
 
     def _load_tokens(self, fname, replace):
         with io.open(fname, 'r', encoding=self.encoding, newline='\n', errors='ignore') as fin:
-            doc = fin.read().replace('\n', ' ')
+            doc = fin.read().replace('\n', ' ').lower()
 
         if self.nlp_model_path is not None:
             doc = self.nlp(doc)
@@ -167,8 +195,9 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         else:
             doc = doc.split()
             tokens = [''.join([replace(c) for c in token]) for token in doc if len(token) > 0]
+            self.vocab.update(set(tokens))
 
-        self.samples.append(tokens)
+        self.tokens.append(tokens)
 
 
 if __name__ == '__main__':

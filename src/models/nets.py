@@ -2,17 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torch.autograd import Variable
 
 from .utils import merge
 
 
-class CNN_Text(nn.Module):
+class ShawnNet(nn.Module):
 
-    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5, embed_static=False):
-        super(CNN_Text, self).__init__()
-        self.embed_static = embed_static
-
+    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5):
+        super(ShawnNet, self).__init__()
         V = vocab_size
         D = embedding_dim
         C = num_classes
@@ -24,19 +21,9 @@ class CNN_Text(nn.Module):
         self.convs = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D)) for K in Ks])
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(len(Ks) * Co, C)
-        self.init_weights()
-
-    def init_weights(self):
-        initrange = .5
-        self.embed.weight.data.uniform_(-initrange, initrange)
-        self.fc.weight.data.uniform_(-initrange, initrange)
-        self.fc.bias.data.zero_()
 
     def forward(self, x):
         x = self.embed(x)
-        if self.embed_static:
-            x = Variable(x)
-
         x = x.unsqueeze(1)
         x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
         x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]
@@ -47,59 +34,103 @@ class CNN_Text(nn.Module):
         return logit
 
 
-class AgneseNetModel(nn.Module):
-    def __init__(self, num_classes=10, alpha=.5):
-        super(AgneseNetModel, self).__init__()
+class AgneseNetV2(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5, alpha=.5):
+        super(AgneseNetV2, self).__init__()
         self.alpha = alpha
+        self.merge = merge
+
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
             param.requires_grad_(False)
-        self.convs = nn.ModuleList([nn.Conv2d(
-            in_channels=1,
-            out_channels=512,
-            kernel_size=(i, 300),
-            stride=2
-        ) for i in [250, 125, 62]])
-        self.dropout = nn.Dropout(.5)
-        self.fc = nn.Linear(512 * 3, num_classes)
+
+        Ks = [3, 4, 5]
+        self.embed = nn.Embedding(vocab_size, embedding_dim)
+        self.convs = nn.ModuleList([nn.Conv2d(1, 512, (K, embedding_dim)) for K in Ks])
+        self.dropout = nn.Dropout(.2)
+        self.fc1 = nn.Linear(len(Ks) * 512, self.base.last_channel)  # check on mobile net output
+        self.fc2 = nn.Linear(self.base.last_channel, num_classes)
 
     def forward(self, b_x, s_x):
-        b_x = self.base.features(b_x)
-
-        s_x = torch.unsqueeze(s_x, 1)
+        s_x = self.embed(s_x)
+        s_x = s_x.unsqueeze(1)
         s_x = [F.relu(conv(s_x)).squeeze(3) for conv in self.convs]
         s_x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in s_x]
         s_x = torch.cat(s_x, 1)
+        s_x = self.fc1(s_x)
 
-        x = self.merge(self.alpha, b_x, s_x)
+        b_x = self.base.features(b_x)
+        b_x = b_x.mean([2, 3])
+        x = self.merge((0.5 + 0.75) / 2, b_x, s_x)
         x = self.dropout(x)
-        x = self.fc(x)
+        x = self.fc2(x)
 
         return x
 
 
-class TextClassificationModel(nn.Module):
+class AgneseNet(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5, alpha=.5):
+        super(AgneseNet, self).__init__()
+        self.alpha = alpha
+        self.merge = merge
+
+        self.base = torchvision.models.mobilenet_v2(pretrained=True)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+
+        Ks = [3, 4, 5]
+        self.embed = nn.Embedding(vocab_size, embedding_dim)
+        self.convs = nn.ModuleList([nn.Conv2d(1, 512, (K, embedding_dim)) for K in Ks])
+        self.dropout = nn.Dropout(.2)
+        self.fc1 = nn.Linear(len(Ks) * 512, self.base.last_channel)  # check on mobile net output
+        self.fc2 = nn.Linear(self.base.last_channel, num_classes)
+
+    def forward(self, b_x, s_x):
+        s_x = self.embed(s_x)
+        s_x = s_x.unsqueeze(1)
+        s_x = [F.relu(conv(s_x)).squeeze(3) for conv in self.convs]
+        s_x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in s_x]
+        s_x = torch.cat(s_x, 1)
+        s_x = self.fc1(s_x)
+
+        b_x = self.base.features(b_x)
+        b_x = b_x.mean([2, 3])
+        x = self.merge((0.5 + 0.75) / 2, b_x, s_x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
+
+class CedricNet(nn.Module):
     def __init__(self, vocab_size, embedding_dim, num_classes=10):
-        super(TextClassificationModel, self).__init__()
-        # self.embeddings = nn.Embedding(vocab_size, embedding_dim)
+        super(CedricNet, self).__init__()
+        self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.conv1 = nn.Conv1d(1, 512, (12, 300))
         self.conv2 = nn.Conv1d(512, 512, 12)
         self.dropout = nn.Dropout(.5)
         self.fc = nn.Linear(512, num_classes)
 
     def forward(self, x):
-        # x = self.embeddings(x)
+        x = self.embeddings(x)
         x = x.unsqueeze(1)
+
         x = self.conv1(x)
         x = F.relu(x)
         x = x.squeeze(3)
         x = F.max_pool1d(x, 2)
+
         x = self.conv2(x)
         x = F.relu(x)
         x = F.max_pool1d(x, 2)
+
         x = self.conv2(x)
         x = F.relu(x)
         x = F.max_pool1d(x, 2)
+
+        # x = self.conv2(x)
+        # x = F.relu(x)
+        # x = F.max_pool1d(x, 2)
 
         x = F.max_pool1d(x, x.size(2))
         x = x.squeeze(2)
@@ -108,9 +139,9 @@ class TextClassificationModel(nn.Module):
         return x
 
 
-class MobileNetV2SideTuneModel(nn.Module):
+class MobileNetV2Savona(nn.Module):
     def __init__(self, num_classes, alpha=.5):
-        super(MobileNetV2SideTuneModel, self).__init__()
+        super(MobileNetV2Savona, self).__init__()
         self.alpha = alpha
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
@@ -132,9 +163,9 @@ class MobileNetV2SideTuneModel(nn.Module):
         return x_merge
 
 
-class ReseNetSideTuneModel(nn.Module):
+class ReseNetSavona(nn.Module):
     def __init__(self, num_classes, alpha=.5):
-        super(ReseNetSideTuneModel, self).__init__()
+        super(ReseNetSavona, self).__init__()
         self.alpha = alpha
         self.base = torchvision.models.resnet50(pretrained=True)
         for param in self.base.parameters():

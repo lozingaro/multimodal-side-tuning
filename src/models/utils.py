@@ -18,9 +18,9 @@ class TrainingPipeline:
 
         for epoch in range(num_epochs):
             start_time = time.time()
-            train_loss, train_acc = self.__train(data_train)
+            train_loss, train_acc = self._train(data_train)
             if data_eval is not None:
-                valid_loss, valid_acc = self.__eval(data_eval)
+                valid_loss, valid_acc = self._eval(data_eval)
 
                 if valid_acc > best_valid_acc:
                     best_valid_acc = valid_acc
@@ -39,38 +39,33 @@ class TrainingPipeline:
 
         if data_test is not None:
             print('Checking the results of test dataset...')
-            test_loss, test_acc = self.__eval(data_test)
+            test_loss, test_acc = self._eval(data_test)
             print(f'\tBest Acc: {best_valid_acc * 100:.1f}% (valid)')
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}% (test)')
 
-    def __train(self, data):
+    def _train(self, data):
         self.model.train()
 
         train_loss = 0.0
         train_acc = 0.0
 
         for inputs, labels in data:
-            try:
-                self.optimizer.zero_grad()
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
-                train_loss += loss.item() * inputs.size(0)
-                loss.backward()
-            except:
-                print("WTF!")
-
+            self.optimizer.zero_grad()
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+            outputs = self.model(inputs)
+            loss = self.criterion(outputs, labels)
+            train_loss += loss.item() * inputs.size(0)
+            loss.backward()
             self.optimizer.step()
             _, preds = torch.max(outputs, 1)
             train_acc += torch.sum(preds == labels.data)
-
 
         if self.scheduler is not None:
             self.scheduler.step()
 
         return train_loss / len(data.dataset), train_acc / float(len(data.dataset))
 
-    def __eval(self, data):
+    def _eval(self, data):
         self.model.eval()
 
         eval_loss = 0.0
@@ -82,6 +77,54 @@ class TrainingPipeline:
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
                 eval_loss += loss.item() * inputs.size(0)
+                _, preds = torch.max(outputs, 1)
+                eval_acc += torch.sum(preds == labels.data)
+
+        return eval_loss / len(data.dataset), eval_acc / float(len(data.dataset))
+
+
+class FusionTrainingPipeline(TrainingPipeline):
+    def __init__(self, model, optimizer, criterion, device):
+        super().__init__(model, optimizer, criterion, device=device)
+
+    def _train(self, data):
+        self.model.train()
+
+        train_loss = 0.0
+        train_acc = 0.0
+
+        for (inputs_image, inputs_text), labels in data:
+            self.optimizer.zero_grad()
+            inputs_image = inputs_image.to(self.device)
+            inputs_text = inputs_text.to(self.device)
+            labels = labels.to(self.device)
+            outputs = self.model(inputs_image, inputs_text)
+            loss = self.criterion(outputs, labels)
+            train_loss += loss.item() * inputs_image.size(0)
+            loss.backward()
+            self.optimizer.step()
+            _, preds = torch.max(outputs, 1)
+            train_acc += torch.sum(preds == labels.data)
+
+        if self.scheduler is not None:
+            self.scheduler.step()
+
+        return train_loss / len(data.dataset), train_acc / float(len(data.dataset))
+
+    def _eval(self, data):
+        self.model.eval()
+
+        eval_loss = 0.0
+        eval_acc = 0
+
+        for (inputs_image, inputs_text), labels in data:
+            inputs_image = inputs_image.to(self.device)
+            inputs_text = inputs_text.to(self.device)
+            labels = labels.to(self.device)
+            with torch.no_grad():
+                outputs = self.model(inputs_image, inputs_text)
+                loss = self.criterion(outputs, labels)
+                eval_loss += loss.item() * inputs_image.size(0)
                 _, preds = torch.max(outputs, 1)
                 eval_acc += torch.sum(preds == labels.data)
 

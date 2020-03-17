@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import TobaccoImageDataset
-from models.nets import MobileNetV2SideTuneModel
+from models.nets import MobileNetV2Savona
 from models.utils import TrainingPipeline
 
 filterwarnings("ignore")
@@ -34,8 +34,8 @@ image_dataloaders = {
 }
 print('done.')
 
-print('\nModel train and evaluation...')
-image_model = MobileNetV2SideTuneModel(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
+print('\nModel train and evaluation... parameters=', end='')
+image_model = MobileNetV2Savona(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
 print(sum([p.numel() for p in image_model.parameters()]))
 image_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 image_optimizer = torch.optim.SGD(image_model.parameters(), lr=conf.model.image_lr, momentum=conf.model.momentum)
