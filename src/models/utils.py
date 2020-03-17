@@ -23,6 +23,7 @@ class TrainingPipeline:
                 valid_loss, valid_acc = self.__eval(data_eval)
 
                 if valid_acc > best_valid_acc:
+                    best_valid_acc = valid_acc
                     best_model = copy.deepcopy(self.model.state_dict())
 
             secs = int(time.time() - start_time)
@@ -49,15 +50,20 @@ class TrainingPipeline:
         train_acc = 0.0
 
         for inputs, labels in data:
-            self.optimizer.zero_grad()
-            inputs, labels = inputs.to(self.device), labels.to(self.device)
-            outputs = self.model(inputs)
-            loss = self.criterion(outputs, labels)
-            train_loss += loss.item() * inputs.size(0)
-            loss.backward()
+            try:
+                self.optimizer.zero_grad()
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+                train_loss += loss.item() * inputs.size(0)
+                loss.backward()
+            except:
+                print("WTF!")
+
             self.optimizer.step()
             _, preds = torch.max(outputs, 1)
             train_acc += torch.sum(preds == labels.data)
+
 
         if self.scheduler is not None:
             self.scheduler.step()

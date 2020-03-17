@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import conf
 from datasets.tobacco import TobaccoTextDataset
 from models import TrainingPipeline
-from models.nets import TextClassificationModel
+from models.nets import CNN_Text, TextClassificationModel
 
 filterwarnings("ignore")
 
@@ -19,9 +19,9 @@ cudnn.deterministic = True
 print('\nLoading data...', end=' ')
 text_dataset = TobaccoTextDataset(conf.dataset.text_root_dir,
                                   context=conf.dataset.text_words_per_doc,
-                                  num_grams=conf.dataset.text_ngrams,
                                   splits=conf.dataset.lengths,
-                                  fasttext_model_path=conf.dataset.text_fasttext_model_path)
+                                  nlp_model_path=conf.dataset.text_spacy_model_path,
+                                  )
 text_dataloaders = {
     x: DataLoader(text_dataset.datasets[x],
                   batch_size=conf.dataset.batch_sizes[x],
@@ -38,7 +38,7 @@ text_model = TextClassificationModel(len(text_dataset.vocab),
                                      num_classes=len(text_dataset.classes)).to(conf.core.device)
 text_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 text_optimizer = torch.optim.SGD(text_model.parameters(), lr=conf.model.text_lr, momentum=conf.model.text_lr)
-
+print(sum([p.numel() for p in text_model.parameters()]))
 pipeline = TrainingPipeline(text_model,
                             text_optimizer,
                             text_criterion,

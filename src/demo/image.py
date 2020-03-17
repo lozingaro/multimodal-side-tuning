@@ -36,6 +36,7 @@ print('done.')
 
 print('\nModel train and evaluation...')
 image_model = MobileNetV2SideTuneModel(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
+print(sum([p.numel() for p in image_model.parameters()]))
 image_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 image_optimizer = torch.optim.SGD(image_model.parameters(), lr=conf.model.image_lr, momentum=conf.model.momentum)
 image_scheduler = torch.optim.lr_scheduler.LambdaLR(image_optimizer,

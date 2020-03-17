@@ -1,14 +1,14 @@
 import copy
 import io
 import os
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
-import fasttext
 import numpy as np
+import spacy
 import torch
 import torch.nn.functional as F
-from matplotlib import pyplot as plt
 import torch.utils.data
+from matplotlib import pyplot as plt
 from torchvision import datasets, transforms
 
 
@@ -49,10 +49,10 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
 
     def _preprocess(self):
         t = transforms.Compose([
-                transforms.Resize((self.image_width, self.image_width), interpolation=self.image_interpolation),
-                transforms.ToTensor(),
-                transforms.Normalize(self.image_mean_norm, self.image_std_norm),
-            ])
+            transforms.Resize((self.image_width, self.image_width), interpolation=self.image_interpolation),
+            transforms.ToTensor(),
+            transforms.Normalize(self.image_mean_norm, self.image_std_norm),
+        ])
         for index in range(len(self.samples)):
             path, target = self.samples[index]
             sample = self.loader(path)
@@ -86,7 +86,7 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
 
 
 class TobaccoTextDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, context, num_grams=1, splits=None, encoding='utf-8', fasttext_model_path=None):
+    def __init__(self, root_dir, context, num_grams=1, splits=None, encoding='utf-8', nlp_model_path=None):
         self.root_dir = root_dir
         self.context = context
         self.num_grams = num_grams
@@ -95,66 +95,79 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         else:
             self.lentghs = splits.values()
         self.encoding = encoding
-        self.fasttext_model_path = fasttext_model_path
-        if self.fasttext_model_path is not None:
-            self.nlp = fasttext.load_model(self.fasttext_model_path)
-            self.vocab = self.nlp.get_words()
+        self.nlp_model_path = nlp_model_path
         self.classes = []
         self.class_to_idx = {}
         self.targets = []
+        self.texts = []
         self.samples = []
-        self.replace = lambda c: c if c.isalnum() else ''
-        self.vocab = set()
-        # self.ngrams = []
+        if self.nlp_model_path is None:
+            self.nlp = None
+            self.vocab = set()
+        else:
+            self.nlp = spacy.load(self.nlp_model_path)
+            self.vocab = self.nlp.vocab
         self._preprocess()
-        self.token_to_idx = {token: i for i, token in enumerate(self.vocab)}
-
+        if self.nlp_model_path is None:
+            self.token_to_idx = {token: i for i, token in enumerate(self.vocab)}
+        self.tensors = []
+        self._load_tensors()
         random_dataset_split = torch.utils.data.random_split(self, lengths=self.lentghs)
-        self.train = random_dataset_split[0]
-        self.val = random_dataset_split[1]
-        self.test = random_dataset_split[2]
         self.datasets = OrderedDict({
-            'train': self.train,
-            'val': self.val,
-            'test': self.test
+            'train': random_dataset_split[0],
+            'val': random_dataset_split[1],
+            'test': random_dataset_split[2]
         })
 
     def __getitem__(self, index):
-        if self.fasttext_model_path is not None:
-            tokens_tensor = torch.tensor([self.nlp.get_word_id(t) for t in self.samples[index]], dtype=torch.long)
-        else:
-            tokens_tensor = torch.tensor([self.token_to_idx[t] for t in self.samples[index]], dtype=torch.long)
-
-        if len(self.samples[index]) < self.context:
-            tokens_tensor = F.pad(tokens_tensor, (0, self.context - len(self.samples[index])))
-        else:
-            tokens_tensor = tokens_tensor[:self.context]
-
-        return tokens_tensor, self.targets[index]
+        return self.tensors[index], self.targets[index]
 
     def __len__(self):
         return len(self.targets)
 
+    def _load_tensors(self):
+        for token in self.samples:
+            if self.nlp_model_path is not None:
+                tokens_tensor = torch.tensor([t.vector for t in token])
+            else:
+                tokens_tensor = torch.tensor([self.token_to_idx[t] for t in token], dtype=torch.long)
+            if len(token) == 0:
+                tokens_tensor = torch.zeros((500, 300))
+            if len(token) < self.context:
+                padding = self.context - len(token)
+                if self.nlp_model_path is not None:
+                    tokens_tensor = F.pad(tokens_tensor, (0, 0, 0, padding))
+                else:
+                    tokens_tensor = F.pad(tokens_tensor, (0, self.context - len(token)))
+            else:
+                tokens_tensor = tokens_tensor[:self.context]
+            self.tensors.append(tokens_tensor)
+
     def _preprocess(self):
+        replace = lambda c: c
         for root, dirs, files in os.walk(self.root_dir, topdown=True):
             for i, label in enumerate(dirs):
                 self.classes.append(label)
                 self.class_to_idx[label] = i
                 for root_label, _, filenames in os.walk(os.path.join(self.root_dir, label), topdown=True):
                     for name in filenames:
-                        self._load_tokens(os.path.join(root_label, name))
+                        self.texts.append(os.path.join(self.root_dir, label, name))
+                        self._load_tokens(os.path.join(root_label, name), replace)
                         self.targets.append(self.class_to_idx[label])
 
-    def _load_tokens(self, fname):
+    def _load_tokens(self, fname, replace):
         with io.open(fname, 'r', encoding=self.encoding, newline='\n', errors='ignore') as fin:
-            tokens = fin.read().lower().split()
+            doc = fin.read().replace('\n', ' ')
 
-        tokens = [''.join([self.replace(c) for c in token]) for token in tokens]
-        tokens = [token for token in tokens if len(token) > 0]
-        if self.fasttext_model_path is None:
-            self.vocab.update(set(tokens))
-        # self.ngrams.append([[tokens[i + j] for j in range(self.num_grams)]
-        #                     for i in range(len(tokens) - self.num_grams - 1)])
+        if self.nlp_model_path is not None:
+            doc = self.nlp(doc)
+            tokens = [token for token, (word, freq) in
+                      zip([token for token in doc], Counter([token.text for token in doc]).items())
+                      if not token.is_punct and not token.is_stop and freq == 1 and len(token) > 0]
+        else:
+            doc = doc.split()
+            tokens = [''.join([replace(c) for c in token]) for token in doc if len(token) > 0]
+
         self.samples.append(tokens)
 
 
