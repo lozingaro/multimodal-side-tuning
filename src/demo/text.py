@@ -33,13 +33,13 @@ text_dataloaders = {
 print('done.')
 
 print('\nModel train and evaluation... parameters=', end='')
-text_model = CedricNet(len(text_dataset.vocab),
-                       conf.dataset.text_embedding_dim,
-                       num_classes=len(text_dataset.classes)).to(conf.core.device)
+text_model = ShawnNet(len(text_dataset.vocab),
+                      conf.dataset.text_embedding_dim,
+                      num_classes=len(text_dataset.classes)).to(conf.core.device)
 print(sum([p.numel() for p in text_model.parameters()]))
 text_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 # text_optimizer = torch.optim.SGD(text_model.parameters(), lr=conf.model.text_lr, momentum=conf.model.text_lr)
-text_optimizer = torch.optim.Adam(text_model.parameters(), lr=0.001)
+text_optimizer = torch.optim.Adam(text_model.parameters(), lr=conf.model.text_lr)
 pipeline = TrainingPipeline(text_model,
                             text_optimizer,
                             text_criterion,

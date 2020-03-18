@@ -8,35 +8,55 @@ from .utils import merge
 
 class ShawnNet(nn.Module):
 
-    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5):
+    def __init__(self, vocab_size, embedding_dim, ch_input=1, num_filters=512, windows=None, dropout_prob=.5,
+                 num_classes=10):
         super(ShawnNet, self).__init__()
-        V = vocab_size
-        D = embedding_dim
-        C = num_classes
-        Ci = 1
-        Co = 512
-        Ks = [3, 4, 5]
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.ch_input = ch_input
+        self.num_filters = num_filters
+        if windows is None:
+            self.windows = [3, 4, 5]
+        self.dropout_prob = dropout_prob
+        self.num_classes = num_classes
 
-        self.embed = nn.Embedding(V, D)
-        self.convs = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D)) for K in Ks])
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(len(Ks) * Co, C)
+        self.embed1 = nn.Embedding(self.vocab_size, self.embedding_dim)
+        self.conv2a = nn.Conv2d(self.ch_input, self.num_filters, (self.windows[0], self.embedding_dim))
+        self.conv2b = nn.Conv2d(self.ch_input, self.num_filters, (self.windows[1], self.embedding_dim))
+        self.conv2c = nn.Conv2d(self.ch_input, self.num_filters, (self.windows[2], self.embedding_dim))
+        self.dropout3 = nn.Dropout(self.dropout_prob)
+        self.fc4 = nn.Linear(len(self.windows) * self.num_filters, self.num_classes)
 
     def forward(self, x):
-        x = self.embed(x)
+        x = self.embed1(x)
         x = x.unsqueeze(1)
-        x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
-        x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]
-        x = torch.cat(x, 1)
-        x = self.dropout(x)
-        logit = self.fc(x)
 
-        return logit
+        x2a = self.conv2a(x)
+        x2a = F.relu(x2a).squeeze(3)
+        x2a = F.max_pool1d(x2a, x2a.size(2)).squeeze(2)
+
+        x2b = self.conv2b(x)
+        x2b = F.relu(x2b).squeeze(3)
+        x2b = F.max_pool1d(x2b, x2b.size(2)).squeeze(2)
+
+        x2c = self.conv2c(x)
+        x2c = F.relu(x2c).squeeze(3)
+        x2c = F.max_pool1d(x2c, x2c.size(2)).squeeze(2)
+
+        x = torch.cat((x2a, x2b, x2c), 1)
+
+        x = self.dropout3(x)
+        x = self.fc4(x)
+
+        return x
 
 
-class AgneseNetV2(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5, alpha=.5):
-        super(AgneseNetV2, self).__init__()
+class TextSideNet(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, num_classes, alpha=.5):
+        super(TextSideNet, self).__init__()
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.num_classes = num_classes
         self.alpha = alpha
         self.merge = merge
 
@@ -44,33 +64,50 @@ class AgneseNetV2(nn.Module):
         for param in self.base.parameters():
             param.requires_grad_(False)
 
-        Ks = [3, 4, 5]
-        self.embed = nn.Embedding(vocab_size, embedding_dim)
-        self.convs = nn.ModuleList([nn.Conv2d(1, 512, (K, embedding_dim)) for K in Ks])
-        self.dropout = nn.Dropout(.2)
-        self.fc1 = nn.Linear(len(Ks) * 512, self.base.last_channel)  # check on mobile net output
-        self.fc2 = nn.Linear(self.base.last_channel, num_classes)
+        self.side = ShawnNet(self.vocab_size, self.embedding_dim)
+
+        self.fc1fus = nn.Linear(self.side.num_filters * len(self.side.windows), 1280)
+        # self.fc2fus = nn.Linear(self.base.last_channel, 128)
+        self.dropout = nn.Dropout(0.5)
+        self.fc3fus = nn.Linear(1280, self.num_classes)
 
     def forward(self, b_x, s_x):
-        s_x = self.embed(s_x)
+        s_x = self.side.embed1(s_x)
         s_x = s_x.unsqueeze(1)
-        s_x = [F.relu(conv(s_x)).squeeze(3) for conv in self.convs]
-        s_x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in s_x]
-        s_x = torch.cat(s_x, 1)
-        s_x = self.fc1(s_x)
+
+        s_x2a = self.side.conv2a(s_x)
+        s_x2a = F.relu(s_x2a).squeeze(3)
+        s_x2a = F.max_pool1d(s_x2a, s_x2a.size(2)).squeeze(2)
+
+        s_x2b = self.side.conv2b(s_x)
+        s_x2b = F.relu(s_x2b).squeeze(3)
+        s_x2b = F.max_pool1d(s_x2b, s_x2b.size(2)).squeeze(2)
+
+        s_x2c = self.side.conv2c(s_x)
+        s_x2c = F.relu(s_x2c).squeeze(3)
+        s_x2c = F.max_pool1d(s_x2c, s_x2c.size(2)).squeeze(2)
+
+        s_x = torch.cat((s_x2a, s_x2b, s_x2c), 1)
+        s_x = self.fc1fus(s_x)
 
         b_x = self.base.features(b_x)
         b_x = b_x.mean([2, 3])
-        x = self.merge((0.5 + 0.75) / 2, b_x, s_x)
+        # ---------- locked ----------
+        # b_x = self.fc2fus(b_x)
+
+        x, ds = self.merge(self.alpha, b_x, s_x)
         x = self.dropout(x)
-        x = self.fc2(x)
+        x = self.fc3fus(x)
 
-        return x
+        return x, ds
 
 
-class AgneseNet(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, num_classes, dropout=.5, alpha=.5):
-        super(AgneseNet, self).__init__()
+class TextSideNet_sideFC(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, num_classes, alpha=.5):
+        super(TextSideNet_sideFC, self).__init__()
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.num_classes = num_classes
         self.alpha = alpha
         self.merge = merge
 
@@ -78,28 +115,43 @@ class AgneseNet(nn.Module):
         for param in self.base.parameters():
             param.requires_grad_(False)
 
-        Ks = [3, 4, 5]
-        self.embed = nn.Embedding(vocab_size, embedding_dim)
-        self.convs = nn.ModuleList([nn.Conv2d(1, 512, (K, embedding_dim)) for K in Ks])
-        self.dropout = nn.Dropout(.2)
-        self.fc1 = nn.Linear(len(Ks) * 512, self.base.last_channel)  # check on mobile net output
-        self.fc2 = nn.Linear(self.base.last_channel, num_classes)
+        self.side = ShawnNet(self.vocab_size, self.embedding_dim)
+
+        self.fc1fus = nn.Linear(self.side.num_filters * len(self.side.windows), 128)
+        self.fc2fus = nn.Linear(self.base.last_channel, 128)
+        self.dropout = nn.Dropout(0.5)
+        self.fc3fus = nn.Linear(128, self.num_classes)
 
     def forward(self, b_x, s_x):
-        s_x = self.embed(s_x)
+        s_x = self.side.embed1(s_x)
         s_x = s_x.unsqueeze(1)
-        s_x = [F.relu(conv(s_x)).squeeze(3) for conv in self.convs]
-        s_x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in s_x]
-        s_x = torch.cat(s_x, 1)
-        s_x = self.fc1(s_x)
+
+        s_x2a = self.side.conv2a(s_x)
+        s_x2a = F.relu(s_x2a).squeeze(3)
+        s_x2a = F.max_pool1d(s_x2a, s_x2a.size(2)).squeeze(2)
+
+        s_x2b = self.side.conv2b(s_x)
+        s_x2b = F.relu(s_x2b).squeeze(3)
+        s_x2b = F.max_pool1d(s_x2b, s_x2b.size(2)).squeeze(2)
+
+        s_x2c = self.side.conv2c(s_x)
+        s_x2c = F.relu(s_x2c).squeeze(3)
+        s_x2c = F.max_pool1d(s_x2c, s_x2c.size(2)).squeeze(2)
+
+        s_x = torch.cat((s_x2a, s_x2b, s_x2c), 1)
+        s_x = self.fc1fus(s_x)
 
         b_x = self.base.features(b_x)
-        b_x = b_x.mean([2, 3])
-        x = self.merge((0.5 + 0.75) / 2, b_x, s_x)
-        x = self.dropout(x)
-        x = self.fc2(x)
+        # ---------- locked ----------
+        b_x = F.avg_pool2d(b_x, b_x.size(2))
+        b_x = b_x.squeeze()
+        b_x = self.fc2fus(b_x)
 
-        return x
+        x, ds = self.merge(self.alpha, b_x, s_x)
+        x = self.dropout(x)
+        x = self.fc3fus(x)
+
+        return x, ds
 
 
 class CedricNet(nn.Module):
@@ -156,16 +208,16 @@ class MobileNetV2Savona(nn.Module):
         b_x = self.base.features(x)
         s_x = self.side.features(s_x)
 
-        x_merge = self.merge(self.alpha, b_x, s_x)
+        x_merge, _ = self.merge(self.alpha, b_x, s_x)
         x_merge = x_merge.mean([2, 3])
         x_merge = self.side.classifier(x_merge)
 
         return x_merge
 
 
-class ReseNetSavona(nn.Module):
+class ResNetSavona(nn.Module):
     def __init__(self, num_classes, alpha=.5):
-        super(ReseNetSavona, self).__init__()
+        super(ResNetSavona, self).__init__()
         self.alpha = alpha
         self.base = torchvision.models.resnet50(pretrained=True)
         for param in self.base.parameters():
@@ -205,7 +257,7 @@ class ReseNetSavona(nn.Module):
         s_x = self.side.avgpool(s_x)
         # End of the side model forward
 
-        x_merge = self.merge(self.alpha, b_x, s_x)
+        x_merge, _ = self.merge(self.alpha, b_x, s_x)
         x_merge = torch.flatten(x_merge, 1)
         x_merge = self.side.fc(x_merge)
 

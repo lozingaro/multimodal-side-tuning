@@ -2,6 +2,7 @@ import copy
 import time
 
 import torch
+import matplotlib.pyplot as plt
 
 
 class TrainingPipeline:
@@ -15,25 +16,32 @@ class TrainingPipeline:
     def run(self, data_train, data_eval=None, data_test=None, num_epochs=5):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
+        train_distances = []
 
-        for epoch in range(num_epochs):
-            start_time = time.time()
-            train_loss, train_acc = self._train(data_train)
-            if data_eval is not None:
-                valid_loss, valid_acc = self._eval(data_eval)
+        try:
+            for epoch in range(num_epochs):
+                start_time = time.time()
+                train_loss, train_acc, epoch_distances = self._train(data_train)
+                train_distances += epoch_distances
 
-                if valid_acc > best_valid_acc:
-                    best_valid_acc = valid_acc
-                    best_model = copy.deepcopy(self.model.state_dict())
+                if data_eval is not None:
+                    valid_loss, valid_acc = self._eval(data_eval)
 
-            secs = int(time.time() - start_time)
-            mins = secs / 60
-            secs = secs % 60
+                    if valid_acc > best_valid_acc:
+                        best_valid_acc = valid_acc
+                        best_model = copy.deepcopy(self.model.state_dict())
 
-            print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
-            print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}% (train)')
-            if data_eval is not None:
-                print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}% (valid)')
+                secs = int(time.time() - start_time)
+                mins = secs / 60
+                secs = secs % 60
+
+                print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
+                print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}% (train)')
+                if data_eval is not None:
+                    print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}% (valid)')
+
+        except KeyboardInterrupt:
+            pass
 
         self.model.load_state_dict(best_model)  # load best model weights
 
@@ -42,6 +50,10 @@ class TrainingPipeline:
             test_loss, test_acc = self._eval(data_test)
             print(f'\tBest Acc: {best_valid_acc * 100:.1f}% (valid)')
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}% (test)')
+
+        if len(train_distances):
+            plt.plot(train_distances)
+            plt.show()
 
     def _train(self, data):
         self.model.train()
@@ -63,7 +75,7 @@ class TrainingPipeline:
         if self.scheduler is not None:
             self.scheduler.step()
 
-        return train_loss / len(data.dataset), train_acc / float(len(data.dataset))
+        return train_loss / len(data.dataset), train_acc / float(len(data.dataset)), []
 
     def _eval(self, data):
         self.model.eval()
@@ -93,12 +105,15 @@ class FusionTrainingPipeline(TrainingPipeline):
         train_loss = 0.0
         train_acc = 0.0
 
+        distances = []
+
         for (inputs_image, inputs_text), labels in data:
             self.optimizer.zero_grad()
             inputs_image = inputs_image.to(self.device)
             inputs_text = inputs_text.to(self.device)
             labels = labels.to(self.device)
-            outputs = self.model(inputs_image, inputs_text)
+            outputs, batch_distances = self.model(inputs_image, inputs_text)
+            distances.append(torch.mean(batch_distances))
             loss = self.criterion(outputs, labels)
             train_loss += loss.item() * inputs_image.size(0)
             loss.backward()
@@ -109,7 +124,7 @@ class FusionTrainingPipeline(TrainingPipeline):
         if self.scheduler is not None:
             self.scheduler.step()
 
-        return train_loss / len(data.dataset), train_acc / float(len(data.dataset))
+        return train_loss / len(data.dataset), train_acc / float(len(data.dataset)), distances
 
     def _eval(self, data):
         self.model.eval()
@@ -122,7 +137,7 @@ class FusionTrainingPipeline(TrainingPipeline):
             inputs_text = inputs_text.to(self.device)
             labels = labels.to(self.device)
             with torch.no_grad():
-                outputs = self.model(inputs_image, inputs_text)
+                outputs, _ = self.model(inputs_image, inputs_text)
                 loss = self.criterion(outputs, labels)
                 eval_loss += loss.item() * inputs_image.size(0)
                 _, preds = torch.max(outputs, 1)
@@ -132,6 +147,9 @@ class FusionTrainingPipeline(TrainingPipeline):
 
 
 def merge(alpha, base_encoding, side_encoding):
+    ds = torch.zeros(base_encoding.size(0))
+    for i in range(base_encoding.size(0)):
+        ds[i] = torch.dist(base_encoding, side_encoding)
     weights = [alpha, 1 - alpha]
     outputs_to_merge = [base_encoding] + [side_encoding]
     merged_encoding = torch.zeros_like(base_encoding, device=base_encoding.device)
@@ -139,4 +157,4 @@ def merge(alpha, base_encoding, side_encoding):
 
     for a, out in zip(weights, outputs_to_merge):
         merged_encoding += a * out
-    return merged_encoding
+    return merged_encoding, ds

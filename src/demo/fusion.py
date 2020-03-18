@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import conf
 from datasets.tobacco import TobaccoImageDataset, TobaccoTextDataset, TobaccoFusionDataset
 from models import FusionTrainingPipeline
-from models.nets import AgneseNetV2
+from models.nets import TextSideNet_sideFC, TextSideNet
 
 filterwarnings("ignore")
 
@@ -38,9 +38,10 @@ fusion_dataloaders = {
 print('done.')
 
 print('\nModel train and evaluation... parameters=', end='')
-fusion_model = AgneseNetV2(len(text_dataset.vocab),
-                           conf.dataset.text_embedding_dim,
-                           num_classes=len(text_dataset.classes)).to(conf.core.device)
+fusion_model = TextSideNet_sideFC(len(text_dataset.vocab),
+                                  conf.dataset.text_embedding_dim,
+                                  num_classes=len(text_dataset.classes),
+                                  alpha=conf.core.alpha).to(conf.core.device)
 print(sum([p.numel() for p in fusion_model.parameters()]))
 fusion_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
 fusion_optimizer = torch.optim.Adam(fusion_model.parameters(), lr=conf.model.fusion_lr)

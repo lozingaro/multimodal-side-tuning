@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import TobaccoImageDataset
-from models.nets import MobileNetV2Savona
+from models.nets import MobileNetV2Savona, ResNetSavona
 from models.utils import TrainingPipeline
 
 filterwarnings("ignore")
@@ -35,17 +35,19 @@ image_dataloaders = {
 print('done.')
 
 print('\nModel train and evaluation... parameters=', end='')
-image_model = MobileNetV2Savona(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
+image_model = ResNetSavona(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
+# image_model = MobileNetV2Savona(len(image_dataset.classes), alpha=conf.alpha).to(conf.core.device)
 print(sum([p.numel() for p in image_model.parameters()]))
 image_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
-image_optimizer = torch.optim.SGD(image_model.parameters(), lr=conf.model.image_lr, momentum=conf.model.momentum)
-image_scheduler = torch.optim.lr_scheduler.LambdaLR(image_optimizer,
-                                                    lambda epoch: conf.model.image_lr * math.sqrt(
-                                                        1 - epoch / conf.model.image_num_epochs))
+image_optimizer = torch.optim.Adam(image_model.parameters(), lr=conf.model.image_lr)
+# image_optimizer = torch.optim.SGD(image_model.parameters(), lr=conf.model.image_lr, momentum=conf.model.momentum)
+# image_scheduler = torch.optim.lr_scheduler.LambdaLR(image_optimizer,
+#                                                     lambda epoch: conf.model.image_lr * math.sqrt(
+#                                                         1 - epoch / conf.model.image_num_epochs))
 pipeline = TrainingPipeline(image_model,
                             image_optimizer,
                             image_criterion,
-                            image_scheduler,
+                            # image_scheduler,
                             device=conf.core.device)
 pipeline.run(image_dataloaders['train'],
              image_dataloaders['val'],

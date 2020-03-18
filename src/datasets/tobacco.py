@@ -111,10 +111,9 @@ class TobaccoImageDataset(torch.utils.data.Dataset):
 
 
 class TobaccoTextDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, context, num_grams=1, splits=None, encoding='utf-8', nlp_model_path=None):
+    def __init__(self, root_dir, context, splits=None, encoding='utf-8', nlp_model_path=None):
         self.root_dir = root_dir
         self.context = context
-        self.num_grams = num_grams
         if splits is None:
             self.lengths = [800, 200, 2482]
         else:
@@ -126,9 +125,9 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         self.targets = []
         self.texts = []
         self.tokens = []
+        self.vocab = set()
         if self.nlp_model_path is None:
-            self.nlp = None
-            self.vocab = set()
+            self.nlp = spacy.load('en_core_web_sm')
         else:
             self.nlp = spacy.load(self.nlp_model_path)
             self.vocab = self.nlp.vocab
@@ -172,7 +171,6 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
             self.samples.append(tokens_tensor)
 
     def _preprocess(self):
-        replace = lambda c: c
         for root, dirs, files in os.walk(self.root_dir, topdown=True):
             for i, label in enumerate(dirs):
                 self.classes.append(label)
@@ -180,30 +178,22 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
                 for root_label, _, filenames in os.walk(os.path.join(self.root_dir, label), topdown=True):
                     for name in filenames:
                         self.texts.append(os.path.join(self.root_dir, label, name))
-                        self._load_tokens(os.path.join(root_label, name), replace)
+                        self._load_tokens(os.path.join(root_label, name))
                         self.targets.append(self.class_to_idx[label])
 
-    def _load_tokens(self, fname, replace):
+    def _load_tokens(self, fname):
         with io.open(fname, 'r', encoding=self.encoding, newline='\n', errors='ignore') as fin:
-            doc = fin.read().replace('\n', ' ').lower()
+            doc = fin.read()
 
         if self.nlp_model_path is not None:
-            doc = self.nlp(doc)
+            doc = self.nlp(doc.replace('\n', ' ').lower())
             tokens = [token for token, (word, freq) in
                       zip([token for token in doc], Counter([token.text for token in doc]).items())
                       if not token.is_punct and not token.is_stop and freq == 1 and len(token) > 0]
         else:
-            doc = doc.split()
-            tokens = [''.join([replace(c) for c in token]) for token in doc if len(token) > 0]
+            doc = self.nlp(doc)
+            # doc = doc.split()
+            tokens = [token.text for token in doc]
+            # tokens = [token for token in doc]
             self.vocab.update(set(tokens))
-
         self.tokens.append(tokens)
-
-
-if __name__ == '__main__':
-    # d = TobaccoImageDataset(conf.dataset.image_root_dir, conf.dataset.image_lengths)
-    # d.check_distributions()
-    # plt.show()
-    d = TobaccoTextDataset('/data01/stefanopio.zingaro/datasets/QS-OCR-small')
-    e = d[0]
-    print(e[0].size())
