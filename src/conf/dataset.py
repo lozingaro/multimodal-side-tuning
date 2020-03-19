@@ -16,7 +16,7 @@ lengths = {
 image_mean_normalization = [0.485, 0.456, 0.406]
 image_std_normalization = [0.229, 0.224, 0.225]
 image_interpolation = Image.BILINEAR
-image_width = 224  # 384
+image_width = 384
 
 text_words_per_doc = 500
 text_embedding_dim = 300

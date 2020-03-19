@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import conf
 from datasets.tobacco import TobaccoImageDataset, TobaccoTextDataset, TobaccoFusionDataset
 from models import FusionTrainingPipeline
-from models.nets import TextSideNet_sideFC, TextSideNet
+from models.nets import TextSideNet_baseFC, TextSideNet, TextSideNet_ResNet
 
 filterwarnings("ignore")
 
@@ -38,7 +38,7 @@ fusion_dataloaders = {
 print('done.')
 
 print('\nModel train and evaluation... parameters=', end='')
-fusion_model = TextSideNet_sideFC(len(text_dataset.vocab),
+fusion_model = TextSideNet_baseFC(len(text_dataset.vocab),
                                   conf.dataset.text_embedding_dim,
                                   num_classes=len(text_dataset.classes),
                                   alpha=conf.core.alpha).to(conf.core.device)

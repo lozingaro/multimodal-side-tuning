@@ -1,6 +1,7 @@
 import copy
 import io
 import os
+import string
 from collections import OrderedDict, Counter
 
 import numpy as np
@@ -134,6 +135,7 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
         self._preprocess()
         if self.nlp_model_path is None:
             self.token_to_idx = {token: i for i, token in enumerate(self.vocab)}
+        print(f"Size of vocabulary is {len(self.vocab)}.")
         self.samples = []
         self._load_tensors()
         random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
@@ -186,14 +188,15 @@ class TobaccoTextDataset(torch.utils.data.Dataset):
             doc = fin.read()
 
         if self.nlp_model_path is not None:
-            doc = self.nlp(doc.replace('\n', ' ').lower())
+            doc = self.nlp(doc.lower())
+            # doc = self.nlp(doc.replace('\n', ' ').lower())
             tokens = [token for token, (word, freq) in
                       zip([token for token in doc], Counter([token.text for token in doc]).items())
                       if not token.is_punct and not token.is_stop and freq == 1 and len(token) > 0]
         else:
-            doc = self.nlp(doc)
-            # doc = doc.split()
-            tokens = [token.text for token in doc]
-            # tokens = [token for token in doc]
+            # doc = self.nlp(doc)
+            # tokens = [token.text for token in doc]
+            doc = doc.split()
+            tokens = [token for token in doc if token not in string.punctuation and token not in string.whitespace]
             self.vocab.update(set(tokens))
         self.tokens.append(tokens)
