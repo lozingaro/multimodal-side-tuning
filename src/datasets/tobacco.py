@@ -1,202 +1,114 @@
-import copy
 import io
 import os
-import string
-from collections import OrderedDict, Counter
+from collections import OrderedDict
 
-import numpy as np
-import spacy
 import torch
 import torch.nn.functional as F
 import torch.utils.data
-from matplotlib import pyplot as plt
 from torchvision import datasets, transforms
 
 
-class TobaccoFusionDataset(torch.utils.data.Dataset):
-    def __init__(self, image_dataset, text_dataset, splits=None):
-        super(TobaccoFusionDataset, self).__init__()
-        if splits is None:
-            self.lengths = [800, 200, 2482]
-        else:
-            self.lengths = splits.values()
-        self.image_dataset = image_dataset
-        self.text_dataset = text_dataset
-        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
-        self.datasets = OrderedDict({
+class TobaccoDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        super(TobaccoDataset, self).__init__()
+        if self.targets is None:
+            self.targets = []
+        self.lengths = [800, 200, 2482]
+        self.datasets = self._load_datasets()
+
+    def _load_datasets(self):
+        random_dataset_split = torch.utils.data.random_split(self, self.lengths)
+        return OrderedDict({
             'train': random_dataset_split[0],
             'val': random_dataset_split[1],
             'test': random_dataset_split[2]
         })
 
     def __getitem__(self, index):
-        out_image = self.image_dataset[index]
-        out_text = self.text_dataset[index][0]
-        return (out_image[0], out_text), out_image[1]
+        return self.samples[index], self.targets[index]
 
     def __len__(self):
-        return len(self.image_dataset.targets)
+        return len(self.targets)
 
 
-class TobaccoImageDataset(torch.utils.data.Dataset):
-    def __init__(self, root, image_width, image_interpolation, image_mean_norm, image_std_norm, splits=None):
-        self.root = root
+class FusionDataset(TobaccoDataset):
+    def __init__(self, image_dataset, text_dataset):
+        self.image_dataset = image_dataset
+        self.text_dataset = text_dataset
+        self.classes = self.image_dataset.classes
+        self.samples = self._load_samples()
+        self.targets = self._load_targets()
+        super(FusionDataset, self).__init__()
+
+    def _load_samples(self):
+        samples = []
+        for image, text in zip(self.image_dataset, self.text_dataset):
+            samples.append((image[0], text[0]))
+        return samples
+
+    def _load_targets(self):
+        return self.image_dataset.targets
+
+
+class ImageDataset(TobaccoDataset):
+    def __init__(self, root, image_width, image_interpolation, image_mean_norm, image_std_norm):
+        self.full = datasets.ImageFolder(root)
         self.image_width = image_width
         self.image_interpolation = image_interpolation
         self.image_mean_norm = image_mean_norm
         self.image_std_norm = image_std_norm
-        if splits is None:
-            self.lengths = [800, 200, 2482]
-        else:
-            self.lengths = splits.values()
+        self.classes = self.full.classes
+        self.samples = self._load_samples()
+        self.targets = self.full.targets
+        super(ImageDataset, self).__init__()
 
-        full = datasets.ImageFolder(self.root)  # builds a proper vision dataset
-        self.imgs = copy.deepcopy(full.samples)
-        self.extensions = full.extensions  # maybe useless?
-        self.class_to_idx = full.class_to_idx  # maybe useless?
-        self.samples = full.samples
-        self.classes = full.classes
-        self.targets = full.targets
-        self.loader = full.loader
-
-        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
-        self.datasets = OrderedDict({
-            'train': random_dataset_split[0],
-            'val': random_dataset_split[1],
-            'test': random_dataset_split[2],
-        })
-        self._preprocess()
-
-    def __getitem__(self, index):
-        return self.samples[index], torch.tensor(self.targets[index], dtype=torch.long)
-
-    def __len__(self):
-        return len(self.samples)
-
-    def _preprocess(self):
+    def _load_samples(self):
+        samples = []
         t = transforms.Compose([
             transforms.Resize((self.image_width, self.image_width), interpolation=self.image_interpolation),
             transforms.ToTensor(),
             transforms.Normalize(self.image_mean_norm, self.image_std_norm),
         ])
-        for index in range(len(self.samples)):
-            path, target = self.samples[index]
-            sample = self.loader(path)
-            sample = t(sample)
-            self.samples[index] = sample
-
-    def check_distributions(self):
-        # check the distribution of full dataset
-        partial_sums = np.unique(self.targets, return_counts=True)[1]
-        partial_probs = [x / self.__len__() for x in partial_sums]
-        # check the distribution of the train dataset
-        partial_sums_train = np.unique([self.targets[i] for i in self.datasets['train'].indices], return_counts=True)[1]
-        partial_probs_train = [x / len(self.datasets['train']) for x in partial_sums_train]
-        # check the distribution of the val dataset
-        partial_sums_val = np.unique([self.targets[i] for i in self.datasets['val'].indices], return_counts=True)[1]
-        partial_probs_val = [x / len(self.datasets['val']) for x in partial_sums_val]
-        # check the distribution of the test dataset
-        partial_sums_test = np.unique([self.targets[i] for i in self.datasets['test'].indices], return_counts=True)[1]
-        partial_probs_test = [x / len(self.datasets['test']) for x in partial_sums_test]
-
-        plt.bar(self.classes, partial_sums)
-        plt.plot(partial_probs, color='red', marker='o', linestyle='-', label='full')
-        plt.plot(partial_probs_train, color='blue', marker='o', linestyle='-', label='train')
-        plt.plot(partial_probs_val, color='green', marker='o', linestyle='-', label='validation')
-        plt.plot(partial_probs_test, color='black', marker='o', linestyle='-', label='test')
-        plt.legend()
-        plt.xticks(list(range(10)), self.classes, rotation=20)
-        plt.yscale('log')
-        plt.grid(True)
-        plt.title('class frequency distribution')
+        for index in range(len(self.full.samples)):
+            path, target = self.full.samples[index]
+            sample = self.full.loader(path)
+            samples.append(t(sample))
+        return samples
 
 
-class TobaccoTextDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, context, splits=None, encoding='utf-8', nlp_model_path=None):
-        self.root_dir = root_dir
+class TextDataset(TobaccoDataset):
+    def __init__(self, root, nlp, context=500):
+        self.root = root
+        self.nlp = nlp
         self.context = context
-        if splits is None:
-            self.lengths = [800, 200, 2482]
-        else:
-            self.lengths = splits.values()
-        self.encoding = encoding
-        self.nlp_model_path = nlp_model_path
+        self.targets = self._load_targets()
+        self.samples = self._load_samples()
+        super(TextDataset, self).__init__()
+
+    def _load_targets(self):
         self.classes = []
-        self.class_to_idx = {}
-        self.targets = []
+        targets = []
         self.texts = []
-        self.tokens = []
-        self.vocab = set()
-        if self.nlp_model_path is None:
-            self.nlp = spacy.load('en_core_web_sm')
-        else:
-            self.nlp = spacy.load(self.nlp_model_path)
-            self.vocab = self.nlp.vocab
-        self._preprocess()
-        if self.nlp_model_path is None:
-            self.token_to_idx = {token: i for i, token in enumerate(self.vocab)}
-        print(f"Size of vocabulary is {len(self.vocab)}.")
-        self.samples = []
-        self._load_tensors()
-        random_dataset_split = torch.utils.data.random_split(self, lengths=self.lengths)
-        self.datasets = OrderedDict({
-            'train': random_dataset_split[0],
-            'val': random_dataset_split[1],
-            'test': random_dataset_split[2]
-        })
-
-    def __getitem__(self, index):
-        return self.samples[index], torch.tensor(self.targets[index], dtype=torch.long)
-
-    def __len__(self):
-        return len(self.targets)
-
-    def _load_tensors(self):
-        for tokens in self.tokens:
-            padding = self.context - len(tokens)
-            if self.nlp_model_path is not None:
-                if len(tokens) == 0:
-                    tokens_tensor = torch.zeros((500, 300))
-                else:
-                    tokens_tensor = torch.tensor([t.vector for t in tokens])
-                    if len(tokens) < self.context:
-                        tokens_tensor = F.pad(tokens_tensor, (0, 0, 0, padding))
-                    else:
-                        tokens_tensor = tokens_tensor[:self.context]
-            else:
-                if len(tokens) == 0:
-                    tokens_tensor = torch.zeros(500, dtype=torch.long)
-                else:
-                    tokens_tensor = torch.tensor([self.token_to_idx[t] for t in tokens], dtype=torch.long)
-                    tokens_tensor = F.pad(tokens_tensor, (0, padding))
-
-            self.samples.append(tokens_tensor)
-
-    def _preprocess(self):
-        for root, dirs, files in os.walk(self.root_dir, topdown=True):
+        for root, dirs, _ in os.walk(self.root):
             for i, label in enumerate(dirs):
                 self.classes.append(label)
-                self.class_to_idx[label] = i
-                for root_label, _, filenames in os.walk(os.path.join(self.root_dir, label), topdown=True):
-                    for name in filenames:
-                        self.texts.append(os.path.join(self.root_dir, label, name))
-                        self._load_tokens(os.path.join(root_label, name))
-                        self.targets.append(self.class_to_idx[label])
+                for root_label, _, filenames in os.walk(os.path.join(root, label)):
+                    self.texts += [os.path.join(root_label, name) for name in filenames]
+                    targets += [i for _ in filenames]
+        return targets
 
-    def _load_tokens(self, fname):
-        with io.open(fname, 'r', encoding=self.encoding, newline='\n', errors='ignore') as fin:
-            doc = fin.read()
-
-        if self.nlp_model_path is not None:
-            doc = self.nlp(doc.lower())
-            # doc = self.nlp(doc.replace('\n', ' ').lower())
-            tokens = [token for token, (word, freq) in
-                      zip([token for token in doc], Counter([token.text for token in doc]).items())
-                      if not token.is_punct and not token.is_stop and freq == 1 and len(token) > 0]
-        else:
-            # doc = self.nlp(doc)
-            # tokens = [token.text for token in doc]
-            doc = doc.split()
-            tokens = [token for token in doc if token not in string.punctuation and token not in string.whitespace]
-            self.vocab.update(set(tokens))
-        self.tokens.append(tokens)
+    def _load_samples(self):
+        samples = []
+        for fname in self.texts:
+            with io.open(fname, encoding='utf-8') as f:
+                doc = f.read()
+            doc = [self.nlp[i] for i in doc.split()]
+            padding = self.context - len(doc)
+            if padding > 0:
+                if padding == 500:
+                    samples.append(torch.zeros((500, 300)))
+                else:
+                    samples.append(F.pad(torch.tensor(doc), [0, 0, 0, padding]))
+            else:
+                samples.append(torch.tensor(doc[:self.context]))
+        return samples

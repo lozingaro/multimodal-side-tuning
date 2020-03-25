@@ -1,55 +1,45 @@
-from __future__ import print_function, division
+from __future__ import division, print_function
 
 from warnings import filterwarnings
 
+import numpy as np
+import fasttext
 import torch
+import torch.nn as nn
+from PIL import Image
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
 import conf
-from datasets.tobacco import TobaccoImageDataset, TobaccoTextDataset, TobaccoFusionDataset
-from models import FusionTrainingPipeline
-from models.nets import TextSideNet_baseFC, TextSideNet, TextSideNet_ResNet
+from datasets.tobacco import FusionDataset, ImageDataset, TextDataset
+from models import TextImageSideNet, TrainingPipeline
 
 filterwarnings("ignore")
-
-torch.manual_seed(conf.core.seed)
+torch.manual_seed(42)
 cudnn.deterministic = True
 
 print('\nLoading data...', end=' ')
-image_dataset = TobaccoImageDataset(conf.dataset.image_root_dir,
-                                    image_width=conf.dataset.image_width,
-                                    image_interpolation=conf.dataset.image_interpolation,
-                                    image_mean_norm=conf.dataset.image_mean_normalization,
-                                    image_std_norm=conf.dataset.image_std_normalization,
-                                    splits=conf.dataset.lengths)
-text_dataset = TobaccoTextDataset(conf.dataset.text_root_dir,
-                                  context=conf.dataset.text_words_per_doc,
-                                  splits=conf.dataset.lengths)
-fusion_dataset = TobaccoFusionDataset(image_dataset, text_dataset, splits=conf.dataset.lengths)
-fusion_dataloaders = {
-    x: DataLoader(fusion_dataset.datasets[x],
-                  batch_size=conf.dataset.batch_sizes[x],
-                  shuffle=bool(x == 'train' or x == 'val'),
-                  num_workers=0,
-                  pin_memory=True)
-    for x in conf.dataset.batch_sizes
+image_dataset = ImageDataset(conf.core.image_root_dir,
+                             image_width=384,
+                             image_interpolation=Image.BILINEAR,
+                             image_mean_norm=[0.485, 0.456, 0.406],
+                             image_std_norm=[0.229, 0.224, 0.225])
+nlp = fasttext.load_model(conf.core.text_fasttext_model_path)
+text_dataset = TextDataset(conf.core.text_root_dir, nlp=nlp)
+dataset = FusionDataset(image_dataset, text_dataset)
+dataloaders = {
+    x: DataLoader(dataset.datasets[x],
+                  batch_size=conf.core.batch_sizes[x],
+                  shuffle=bool(x == 'train' or x == 'val'))
+    for x in conf.core.batch_sizes
 }
 print('done.')
 
-print('\nModel train and evaluation... parameters=', end='')
-fusion_model = TextSideNet_baseFC(len(text_dataset.vocab),
-                                  conf.dataset.text_embedding_dim,
-                                  num_classes=len(text_dataset.classes),
-                                  alpha=conf.core.alpha).to(conf.core.device)
-print(sum([p.numel() for p in fusion_model.parameters()]))
-fusion_criterion = torch.nn.CrossEntropyLoss().to(conf.core.device)
-fusion_optimizer = torch.optim.Adam(fusion_model.parameters(), lr=conf.model.fusion_lr)
-pipeline = FusionTrainingPipeline(fusion_model,
-                                  fusion_optimizer,
-                                  fusion_criterion,
-                                  device=conf.core.device)
-pipeline.run(fusion_dataloaders['train'],
-             fusion_dataloaders['val'],
-             fusion_dataloaders['test'],
-             num_epochs=conf.model.fusion_num_epochs)
+model = TextImageSideNet(300, num_classes=10, alphas=[.3, .3, .4], dropout_prob=.5).to(conf.core.device)
+print(f'\nModel train (model parameters={sum([p.numel() for p in model.parameters() if p.requires_grad])})...')
+u, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
+weights = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.core.device)
+criterion = nn.CrossEntropyLoss(weight=weights).to(conf.core.device)
+optimizer = torch.optim.Adam(model.parameters(), lr=.0001)
+pipeline = TrainingPipeline(model, criterion, optimizer, device=conf.core.device)
+pipeline.run(dataloaders['train'], dataloaders['val'], dataloaders['test'], num_epochs=100)
