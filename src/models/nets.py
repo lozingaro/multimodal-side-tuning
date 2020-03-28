@@ -3,32 +3,102 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from .utils import merge, merge_n
+from .utils import merge
 
 
-class TextImageSideNet(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alphas=None, dropout_prob=.2):
-        super(TextImageSideNet, self).__init__()
+class TextImageSideNetBaseFC(nn.Module):
+    def __init__(self, embedding_dim, num_classes, alphas=None, dropout_prob=.2, custom_embedding=False,
+                 custom_num_embeddings=0):
+        super(TextImageSideNetBaseFC, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
         if alphas is None:
-            alphas = [.3, .3, .4]
+            alphas = [.3, .3]
         self.alphas = alphas
         self.dropout_prob = dropout_prob
+        self.custom_embedding = custom_embedding
 
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
             param.requires_grad_(False)
         self.side_image = torchvision.models.mobilenet_v2(pretrained=True)
-        self.side_text = ShawnNet(self.embedding_dim)
+        self.side_text = ShawnNet(self.embedding_dim,
+                                  custom_embedding=self.custom_embedding,
+                                  custom_num_embeddings=custom_num_embeddings)
 
-        self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.base.last_channel)
-        self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                        nn.Linear(self.base.last_channel, self.num_classes))
+        if self.custom_embedding:
+            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
+
+        self.fc1fus = nn.Sequential(nn.Dropout(self.dropout_prob),
+                                    nn.Linear(self.side_text.num_filters * len(self.side_text.windows), 128))
+        self.fc2fus = nn.Sequential(nn.Dropout(self.dropout_prob),
+                                    nn.Linear(self.base.last_channel, 128))
+        self.fc3fus = nn.Sequential(nn.Dropout(self.dropout_prob),
+                                    nn.Linear(self.side_image.last_channel, 128))
+
+        self.classifier = nn.Linear(128, self.num_classes)
 
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
 
+        if self.custom_embedding:
+            s_text_x = self.embedding(s_text_x)
+        s_text_x = s_text_x.unsqueeze(1)
+
+        s_text_x = [F.relu(conv(s_text_x)).squeeze(3) for conv in self.side_text.convs]
+        s_text_x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in s_text_x]
+        s_text_x = torch.cat(s_text_x, 1)
+        s_text_x = self.fc1fus(s_text_x)
+
+        s_image_x = b_x.clone()
+
+        b_x = self.base.features(b_x)
+        b_x = b_x.mean([2, 3])
+        b_x = self.fc2fus(b_x)
+
+        s_image_x = self.side_image.features(s_image_x)
+        s_image_x = s_image_x.mean([2, 3])
+        s_image_x = self.fc3fus(s_image_x)
+
+        x, d = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=True)
+        x = self.classifier(x)
+
+        return x, d
+
+
+class TextImageSideNet(nn.Module):
+    def __init__(self, embedding_dim, num_classes, alphas=None, dropout_prob=.2, custom_embedding=False,
+                 custom_num_embeddings=0):
+        super(TextImageSideNet, self).__init__()
+        self.embedding_dim = embedding_dim
+        self.num_classes = num_classes
+        if alphas is None:
+            alphas = [.3, .3]
+        self.alphas = alphas
+        self.dropout_prob = dropout_prob
+        self.custom_embedding = custom_embedding
+
+        self.base = torchvision.models.mobilenet_v2(pretrained=True)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+        self.side_image = torchvision.models.mobilenet_v2(pretrained=True)
+        self.side_text = ShawnNet(self.embedding_dim,
+                                  custom_embedding=self.custom_embedding,
+                                  custom_num_embeddings=custom_num_embeddings)
+
+        if self.custom_embedding:
+            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
+        self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.base.last_channel)
+        self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
+                                        nn.Linear(self.base.last_channel, 512),
+                                        nn.Dropout(self.dropout_prob),
+                                        nn.Linear(512, self.num_classes))
+
+    def forward(self, y):
+        b_x, s_text_x = y[0], y[1]
+
+        if self.custom_embedding:
+            s_text_x = self.embedding(s_text_x)
         s_text_x = s_text_x.unsqueeze(1)
 
         s_text_x = [F.relu(conv(s_text_x)).squeeze(3) for conv in self.side_text.convs]
@@ -44,10 +114,10 @@ class TextImageSideNet(nn.Module):
         s_image_x = self.side_image.features(s_image_x)
         s_image_x = s_image_x.mean([2, 3])
 
-        x = merge_n(self.alphas, [s_image_x, s_text_x, b_x])
+        x, d = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=True)
         x = self.classifier(x)
 
-        return x
+        return x, d
 
 
 class TextSideResNet(nn.Module):
@@ -86,10 +156,10 @@ class TextSideResNet(nn.Module):
         b_x = self.base.avgpool(b_x)
         b_x = torch.flatten(b_x, 1)
 
-        x, d = merge(self.alpha, b_x, s_x, return_distance=True)
+        x = merge([b_x, s_x], [self.alpha])
         x = self.classifier(x)
 
-        return x, d
+        return x
 
 
 class TextSideNet(nn.Module):
@@ -122,7 +192,7 @@ class TextSideNet(nn.Module):
         s_x = torch.cat(s_x, 1)
         s_x = self.fc1fus(s_x)
 
-        x, d = merge(self.alpha, b_x, s_x, return_distance=True)
+        x, d = merge([b_x, s_x], [self.alpha], return_distance=True)
         x = self.classifier(x)
 
         return x, d
@@ -163,10 +233,10 @@ class TextSideNetBaseFC(nn.Module):
         b_x = b_x.squeeze()
         b_x = self.fc2fus(b_x)
 
-        x, d = merge(self.alpha, b_x, s_x, return_distance=True)
+        x = merge([b_x, s_x], [self.alpha])
         x = self.classifier(x)
 
-        return x, d
+        return x
 
 
 class MobileNet(nn.Module):
@@ -188,11 +258,11 @@ class MobileNet(nn.Module):
         b_x = self.base.features(x)
         s_x = self.side.features(s_x)
 
-        x = merge(self.alpha, b_x, s_x)
+        x, d = merge([b_x, s_x], [self.alpha], return_distance=True)
         x = x.mean([2, 3])
         x = self.classifier(x)
 
-        return x
+        return x, d
 
 
 class ResNet(nn.Module):
@@ -234,7 +304,7 @@ class ResNet(nn.Module):
 
         s_x = self.side.avgpool(s_x)
 
-        x = merge(self.alpha, b_x, s_x)
+        x = merge([b_x, s_x], [self.alpha])
         x = torch.flatten(x, 1)
         x = self.classifier(x)
 
@@ -242,7 +312,8 @@ class ResNet(nn.Module):
 
 
 class ShawnNet(nn.Module):
-    def __init__(self, embedding_dim, num_filters=512, windows=None, dropout_prob=.2, num_classes=10):
+    def __init__(self, embedding_dim, num_filters=512, windows=None, dropout_prob=.2, num_classes=10,
+                 custom_embedding=False, custom_num_embeddings=0):
         super(ShawnNet, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_filters = num_filters
@@ -252,7 +323,10 @@ class ShawnNet(nn.Module):
             self.windows = windows
         self.dropout_prob = dropout_prob
         self.num_classes = num_classes
+        self.custom_embedding = custom_embedding
 
+        if self.custom_embedding:
+            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
         self.convs = nn.ModuleList([
             nn.Conv2d(1, self.num_filters, (i, self.embedding_dim)) for i in self.windows
         ])
@@ -260,6 +334,8 @@ class ShawnNet(nn.Module):
                                         nn.Linear(len(self.windows) * self.num_filters, self.num_classes))
 
     def forward(self, x):
+        if self.custom_embedding:
+            x = self.embedding(x)
         x = x.unsqueeze(1)
 
         x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]

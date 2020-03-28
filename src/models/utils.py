@@ -1,4 +1,5 @@
 import copy
+import itertools
 import time
 
 import torch
@@ -29,7 +30,7 @@ class TrainingPipeline:
                 if data_eval is not None:
                     valid_loss, valid_acc, _ = self._eval(data_eval)
 
-                    if valid_acc > best_valid_acc:
+                    if valid_acc >= best_valid_acc:
                         best_valid_acc = valid_acc
                         best_model = copy.deepcopy(self.model.state_dict())
 
@@ -72,9 +73,8 @@ class TrainingPipeline:
             fig.tight_layout()
             plt.show()
 
-        if len(train_distances):
-            plt.plot(train_distances)
-            plt.show()
+        plt.plot(train_distances)
+        plt.show()
 
     def _train(self, data):
         self.model.train()
@@ -96,7 +96,7 @@ class TrainingPipeline:
             result = self.model(inputs)
             if type(result) is tuple:
                 outputs = result[0]
-                distances.append(result[1].item())
+                distances.append(result[1])
             else:
                 outputs = result
             loss = self.criterion(outputs, labels)
@@ -144,19 +144,16 @@ class TrainingPipeline:
         return eval_loss / len(data.dataset), eval_acc / float(len(data.dataset)), confusion_matrix
 
 
-def merge(alpha, x, y, return_distance=False):
+def merge(variables, weights, return_distance=False):
+    coeffs = weights + [1 - sum([i for i in weights])]
+    res = torch.zeros_like(variables[0], device=variables[0].device)
+
+    for coeff, var in zip(coeffs, variables):
+        res += coeff * var
+
     if return_distance:
-        d = torch.mean(torch.tensor([torch.dist(x[i], y[i]).item()/float(len(x)) for i in range(len(x))]))
-        return merge_n([alpha], [x, y]), d
+        d = [torch.mean(torch.tensor([torch.dist(x[i], y[i]) / len(x[i]) for i in range(len(x))])).item()
+             for x, y in [e for e in itertools.combinations(variables, 2)]]
+        return res, d
     else:
-        return merge_n([alpha], [x, y])
-
-
-def merge_n(ops, x):
-    weights = ops + [1 - sum([i for i in ops])]
-    out = [i for i in x]
-    merged_encoding = torch.zeros_like(x[0], device=x[0].device)
-
-    for a, out in zip(weights, out):
-        merged_encoding += a * out
-    return merged_encoding
+        return res

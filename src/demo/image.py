@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 from warnings import filterwarnings
 
+import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
@@ -14,7 +15,7 @@ from models.nets import MobileNet
 from models.utils import TrainingPipeline
 
 filterwarnings("ignore")
-torch.manual_seed(101)
+torch.manual_seed(42)
 cudnn.deterministic = True
 
 print('\nLoading data...', end=' ')
@@ -31,9 +32,11 @@ dataloaders = {
 }
 print('done.')
 
-model = MobileNet(len(dataset.classes), alpha=.55).to(conf.core.device)
-print(f'\nModel train (model parameters={sum([p.numel() for p in model.parameters() if p.requires_grad])})...')
-criterion = nn.CrossEntropyLoss().to(conf.core.device)
+model = MobileNet(len(dataset.classes), alpha=.5).to(conf.core.device)
+print(f'\nModel train (trainable model parameters={sum([p.numel() for p in model.parameters() if p.requires_grad])})...')
+_, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
+weights = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.core.device)
+criterion = nn.CrossEntropyLoss(weight=weights).to(conf.core.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                               lambda epoch: .1 * (1 - epoch / 100)**.5)

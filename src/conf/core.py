@@ -6,7 +6,7 @@ text_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-small'
 batch_sizes = {
     'train': 16,
     'val': 4,
-    'test': 128
+    'test': 32
 }
 lengths = {
     'train': 800,

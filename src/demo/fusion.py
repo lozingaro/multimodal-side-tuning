@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import FusionDataset, ImageDataset, TextDataset
-from models import TextImageSideNet, TrainingPipeline
+from models import TextImageSideNet, TrainingPipeline, TextImageSideNetBaseFC
 
 filterwarnings("ignore")
 torch.manual_seed(42)
@@ -35,11 +35,17 @@ dataloaders = {
 }
 print('done.')
 
-model = TextImageSideNet(300, num_classes=10, alphas=[.3, .3, .4], dropout_prob=.5).to(conf.core.device)
-print(f'\nModel train (model parameters={sum([p.numel() for p in model.parameters() if p.requires_grad])})...')
-u, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
+model = TextImageSideNet(300,
+                         num_classes=10,
+                         alphas=[.4, .4],
+                         dropout_prob=.5).to(conf.core.device)
+print(
+    f'\nModel train (trainable model parameters={sum([p.numel() for p in model.parameters() if p.requires_grad])})...')
+_, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
 weights = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.core.device)
 criterion = nn.CrossEntropyLoss(weight=weights).to(conf.core.device)
-optimizer = torch.optim.Adam(model.parameters(), lr=.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr=.0005)
+# scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+#                                               lambda epoch: .1 * (1 - epoch / 100) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, device=conf.core.device)
 pipeline.run(dataloaders['train'], dataloaders['val'], dataloaders['test'], num_epochs=100)

@@ -82,19 +82,22 @@ class TextDataset(TobaccoDataset):
         self.nlp = nlp
         self.context = context
         self.targets = self._load_targets()
-        self.samples = self._load_samples()
+        if self.nlp is None:
+            self.samples = self._load_samples_custom_embedding()
+        else:
+            self.samples = self._load_samples()
         super(TextDataset, self).__init__()
 
     def _load_targets(self):
         self.classes = []
         targets = []
         self.texts = []
-        for root, dirs, _ in os.walk(self.root):
-            for i, label in enumerate(dirs):
+        for dirpath, dirnames, _ in os.walk(self.root):
+            for i, label in enumerate(dirnames):
                 self.classes.append(label)
-                for root_label, _, filenames in os.walk(os.path.join(root, label)):
-                    self.texts += [os.path.join(root_label, name) for name in filenames]
-                    targets += [i for _ in filenames]
+                for _, _, filenames in os.walk(os.path.join(dirpath, label)):
+                    self.texts += [os.path.join(dirpath, label, name) for name in filenames]
+                    targets += [i] * len(filenames)
         return targets
 
     def _load_samples(self):
@@ -105,10 +108,33 @@ class TextDataset(TobaccoDataset):
             doc = [self.nlp[i] for i in doc.split()]
             padding = self.context - len(doc)
             if padding > 0:
-                if padding == 500:
-                    samples.append(torch.zeros((500, 300)))
+                if padding == self.context:
+                    samples.append(torch.zeros((self.context, 300)))
                 else:
                     samples.append(F.pad(torch.tensor(doc), [0, 0, 0, padding]))
             else:
                 samples.append(torch.tensor(doc[:self.context]))
+        return samples
+
+    def _load_samples_custom_embedding(self):
+        vocab = set()
+        samples = []
+        clean = lambda word: ''.join([c for c in word if c.isalnum()])
+        for fname in self.texts:
+            with io.open(fname, encoding='utf-8') as f:
+                doc = f.read()
+            doc = [clean(token) for token in doc.split()]
+            samples.append(doc)
+            vocab.update(doc)
+        self.lookup = {w: i for i, w in enumerate(sorted(vocab))}
+        for i in range(len(samples)):
+            t = torch.tensor([self.lookup[word] for word in samples[i]], dtype=torch.long)
+            padding = self.context - len(t)
+            if padding > 0:
+                if padding == self.context:
+                    samples[i] = torch.zeros(self.context, dtype=torch.long)
+                samples[i] = F.pad(t, [0, padding])
+            else:
+                samples[i] = t[:self.context]
+
         return samples
