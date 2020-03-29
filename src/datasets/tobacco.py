@@ -1,6 +1,5 @@
 import io
 import os
-from collections import OrderedDict
 
 import torch
 import torch.nn.functional as F
@@ -13,16 +12,8 @@ class TobaccoDataset(torch.utils.data.Dataset):
         super(TobaccoDataset, self).__init__()
         if self.targets is None:
             self.targets = []
-        self.lengths = [800, 200, 2482]
-        self.datasets = self._load_datasets()
-
-    def _load_datasets(self):
-        random_dataset_split = torch.utils.data.random_split(self, self.lengths)
-        return OrderedDict({
-            'train': random_dataset_split[0],
-            'val': random_dataset_split[1],
-            'test': random_dataset_split[2]
-        })
+        if self.samples is None:
+            self.samples = []
 
     def __getitem__(self, index):
         return self.samples[index], self.targets[index]
@@ -82,6 +73,7 @@ class TextDataset(TobaccoDataset):
         self.nlp = nlp
         self.context = context
         self.targets = self._load_targets()
+        self.lookup = {}
         if self.nlp is None:
             self.samples = self._load_samples_custom_embedding()
         else:
@@ -119,7 +111,7 @@ class TextDataset(TobaccoDataset):
     def _load_samples_custom_embedding(self):
         vocab = set()
         samples = []
-        clean = lambda word: ''.join([c for c in word if c.isalnum()])
+        clean = lambda word: word  # ''.join([c for c in word if c.isalnum()])
         for fname in self.texts:
             with io.open(fname, encoding='utf-8') as f:
                 doc = f.read()
