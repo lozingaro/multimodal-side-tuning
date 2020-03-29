@@ -7,9 +7,9 @@ from .utils import merge
 
 
 class TextImageSideNetBaseFC(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alphas = None,
-                 dropout_prob = .2, custom_embedding = False,
-                 custom_num_embeddings = 0):
+    def __init__(self, embedding_dim, num_classes, alphas=None,
+                 dropout_prob=.2, custom_embedding=False,
+                 custom_num_embeddings=0):
         super(TextImageSideNetBaseFC, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -17,18 +17,14 @@ class TextImageSideNetBaseFC(nn.Module):
             alphas = [.3, .3]
         self.alphas = alphas
         self.dropout_prob = dropout_prob
-        self.custom_embedding = custom_embedding
 
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
             param.requires_grad_(False)
         self.side_image = torchvision.models.mobilenet_v2(pretrained=True)
         self.side_text = ShawnNet(self.embedding_dim,
-                                  custom_embedding=self.custom_embedding,
+                                  custom_embedding=custom_embedding,
                                   custom_num_embeddings=custom_num_embeddings)
-
-        if self.custom_embedding:
-            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
 
         self.fc1fus = nn.Sequential(nn.Dropout(self.dropout_prob),
                                     nn.Linear(self.side_text.num_filters * len(
@@ -44,8 +40,8 @@ class TextImageSideNetBaseFC(nn.Module):
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
 
-        if self.custom_embedding:
-            s_text_x = self.embedding(s_text_x)
+        if self.side_text.custom_embedding:
+            s_text_x = self.side_text.embedding(s_text_x)
         s_text_x = s_text_x.unsqueeze(1)
 
         s_text_x = [F.relu(conv(s_text_x)).squeeze(3) for conv in
@@ -72,9 +68,9 @@ class TextImageSideNetBaseFC(nn.Module):
 
 
 class TextImageSideNet(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alphas = None,
-                 dropout_prob = .2, custom_embedding = False,
-                 custom_num_embeddings = 0):
+    def __init__(self, embedding_dim, num_classes, alphas=None,
+                 dropout_prob=.2, custom_embedding=False,
+                 custom_num_embeddings=0):
         super(TextImageSideNet, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -82,18 +78,15 @@ class TextImageSideNet(nn.Module):
             alphas = [.3, .3]
         self.alphas = alphas
         self.dropout_prob = dropout_prob
-        self.custom_embedding = custom_embedding
 
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
             param.requires_grad_(False)
         self.side_image = torchvision.models.mobilenet_v2(pretrained=True)
         self.side_text = ShawnNet(self.embedding_dim,
-                                  custom_embedding=self.custom_embedding,
+                                  custom_embedding=custom_embedding,
                                   custom_num_embeddings=custom_num_embeddings)
 
-        if self.custom_embedding:
-            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
         self.fc1fus = nn.Linear(
             self.side_text.num_filters * len(self.side_text.windows),
             self.base.last_channel)
@@ -103,8 +96,8 @@ class TextImageSideNet(nn.Module):
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
 
-        if self.custom_embedding:
-            s_text_x = self.embedding(s_text_x)
+        if self.side_text.custom_embedding:
+            s_text_x = self.side_text.embedding(s_text_x)
         s_text_x = s_text_x.unsqueeze(1)
 
         s_text_x = [F.relu(conv(s_text_x)).squeeze(3) for conv in
@@ -127,10 +120,11 @@ class TextImageSideNet(nn.Module):
 
         return x, d
 
+
 class TextImageSideNetSideFC(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alphas = None,
-                 dropout_prob = .2, custom_embedding = False,
-                 custom_num_embeddings = 0):
+    def __init__(self, embedding_dim, num_classes, alphas=None,
+                 dropout_prob=.2, custom_embedding=False,
+                 custom_num_embeddings=0):
         super(TextImageSideNetSideFC, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -138,18 +132,15 @@ class TextImageSideNetSideFC(nn.Module):
             alphas = [.3, .3]
         self.alphas = alphas
         self.dropout_prob = dropout_prob
-        self.custom_embedding = custom_embedding
 
         self.base = torchvision.models.mobilenet_v2(pretrained=True)
         for param in self.base.parameters():
             param.requires_grad_(False)
         self.side_image = torchvision.models.mobilenet_v2(pretrained=True)
         self.side_text = ShawnNet(self.embedding_dim,
-                                  custom_embedding=self.custom_embedding,
+                                  custom_embedding=custom_embedding,
                                   custom_num_embeddings=custom_num_embeddings)
 
-        if self.custom_embedding:
-            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
         self.fc1fus = nn.Linear(
             self.side_text.num_filters * len(self.side_text.windows),
             self.base.last_channel)
@@ -161,8 +152,8 @@ class TextImageSideNetSideFC(nn.Module):
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
 
-        if self.custom_embedding:
-            s_text_x = self.embedding(s_text_x)
+        if self.side_text.custom_embedding:
+            s_text_x = self.side_text.embedding(s_text_x)
         s_text_x = s_text_x.unsqueeze(1)
 
         s_text_x = [F.relu(conv(s_text_x)).squeeze(3) for conv in
@@ -187,8 +178,8 @@ class TextImageSideNetSideFC(nn.Module):
 
 
 class TextSideResNet(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alpha = .5,
-                 dropout_prob = .2):
+    def __init__(self, embedding_dim, num_classes, alpha=.5,
+                 dropout_prob=.2):
         super(TextSideResNet, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -230,8 +221,8 @@ class TextSideResNet(nn.Module):
 
 
 class TextSideNet(nn.Module):
-    def __init__(self, embedding_dim, num_classes, alpha = .5,
-                 dropout_prob = .2):
+    def __init__(self, embedding_dim, num_classes, alpha=.5,
+                 dropout_prob=.2):
         super(TextSideNet, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -269,8 +260,8 @@ class TextSideNet(nn.Module):
 
 
 class TextSideNetBaseFC(nn.Module):
-    def __init__(self, embedding_dim, num_classes = 10, alpha = .5,
-                 dropout_prob = .2):
+    def __init__(self, embedding_dim, num_classes=10, alpha=.5,
+                 dropout_prob=.2):
         super(TextSideNetBaseFC, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -312,7 +303,7 @@ class TextSideNetBaseFC(nn.Module):
 
 
 class MobileNet(nn.Module):
-    def __init__(self, num_classes, alpha = .5, dropout_prob = .2):
+    def __init__(self, num_classes, alpha=.5, dropout_prob=.2):
         super(MobileNet, self).__init__()
         self.alpha = alpha
         self.dropout_prob = dropout_prob
@@ -339,7 +330,7 @@ class MobileNet(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, num_classes, alpha = .5, dropout_prob = .2):
+    def __init__(self, num_classes, alpha=.5, dropout_prob=.2):
         super(ResNet, self).__init__()
         self.alpha = alpha
         self.dropout_prob = dropout_prob
@@ -386,9 +377,9 @@ class ResNet(nn.Module):
 
 
 class ShawnNet(nn.Module):
-    def __init__(self, embedding_dim, num_filters = 512, windows = None,
-                 dropout_prob = .2, num_classes = 10,
-                 custom_embedding = False, custom_num_embeddings = 0):
+    def __init__(self, embedding_dim, num_filters=512, windows=None,
+                 dropout_prob=.2, num_classes=10,
+                 custom_embedding=False, custom_num_embeddings=0):
         super(ShawnNet, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_filters = num_filters

@@ -36,7 +36,7 @@ for task in conf.tasks:
                                      image_std_norm=[0.229, 0.224, 0.225])
         if task[2] == 'fasttext':
             nlp = fasttext.load_model(conf.core.text_fasttext_model_path)
-            text_dataset = TextDataset(conf.text_root_dir, nlp=None)
+            text_dataset = TextDataset(conf.text_root_dir, nlp=nlp)
             dataset = FusionDataset(image_dataset, text_dataset)
             torch.save(dataset, conf.fusion_dataset_fasttext_path)
         else:
@@ -61,21 +61,21 @@ for task in conf.tasks:
                                  num_classes=10,
                                  alphas=task[4],
                                  dropout_prob=.5,
-                                 custom_embedding=task[2] == 'custom',
+                                 custom_embedding=bool(task[2] == 'custom'),
                                  custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
     elif task[0] == '1280x512x10':
         model = TextImageSideNetSideFC(300,
                                        num_classes=10,
                                        alphas=task[4],
                                        dropout_prob=.5,
-                                       custom_embedding=task[2] == 'custom',
+                                       custom_embedding=bool(task[2] == 'custom'),
                                        custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
     else:
         model = TextImageSideNetBaseFC(300,
                                        num_classes=10,
                                        alphas=task[4],
                                        dropout_prob=.5,
-                                       custom_embedding=task[2] == 'custom',
+                                       custom_embedding=bool(task[2] == 'custom'),
                                        custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
     if task[3] == 'min':
         _, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)

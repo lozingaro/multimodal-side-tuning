@@ -3,8 +3,8 @@ import itertools
 import torch
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-image_root_dir = '../data/Tobacco3482-jpg'
-text_root_dir = '../data/QS-OCR-small'
+image_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
+text_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
 batch_sizes = {
     'train': 16,
     'val': 4,
