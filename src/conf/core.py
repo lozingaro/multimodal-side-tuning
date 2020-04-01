@@ -16,9 +16,10 @@ text_dataset_fasttext_path = '/tmp/text_dataset_fasttext.pth'
 image_dataset_path = '/tmp/image_dataset.pth'
 fusion_dataset_custom_path = '/tmp/fusion_dataset_custom.pth'
 fusion_dataset_fasttext_path = '/tmp/fusion_dataset_fasttext.pth'
-tasks_classifier = ['1280x10', '1280x512x10', '1280x128x10']
-tasks_optimizer = ['sgd', 'adam']
-tasks_embedding = ['fasttext', 'custom']
-tasks_loss_weigth = ['no', 'min', 'max']
-tasks_coeffs = [[.4, .3], [.5, .3], [.4, .4]]
+
+tasks_classifier = ['1280x512x10']  # ['1280x10', '1280x512x10', '1280x128x10']
+tasks_optimizer = ['sgd']  # ['sgd', 'adam']
+tasks_embedding = ['fasttext']  # ['fasttext', 'custom']
+tasks_loss_weigth = ['min']  # ['no', 'min', 'max']
+tasks_coeffs = ['4-4-2']  # ['4-3-3', '5-3-2', '4-4-2']
 tasks = itertools.product(tasks_classifier, tasks_optimizer, tasks_embedding, tasks_loss_weigth, tasks_coeffs)

@@ -9,16 +9,16 @@ import matplotlib.pyplot as plt
 
 class TrainingPipeline:
 
-    def __init__(self, model, criterion, optimizer, scheduler = None,
-                 device = 'cuda'):
+    def __init__(self, model, criterion, optimizer, scheduler=None,
+                 device='cuda'):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
         self.device = device
 
-    def run(self, data_train, data_eval = None, data_test = None,
-            num_epochs = 50):
+    def run(self, data_train, data_eval=None, data_test=None,
+            num_epochs=50):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
         train_distances = []
@@ -154,7 +154,7 @@ class TrainingPipeline:
             len(data.dataset)), confusion_matrix
 
 
-def merge(variables, weights, return_distance = False):
+def merge(variables, weights, return_distance=False):
     coeffs = weights + [1 - sum([i for i in weights])]
     res = torch.zeros_like(variables[0], device=variables[0].device)
 
