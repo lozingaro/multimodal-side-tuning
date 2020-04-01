@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import random
 from collections import OrderedDict
 from warnings import filterwarnings
 
@@ -16,10 +17,13 @@ from datasets.tobacco import FusionDataset, ImageDataset, TextDataset
 from models import TextImageSideNet, TrainingPipeline, TextImageSideNetBaseFC, TextImageSideNetSideFC
 
 filterwarnings("ignore")
-torch.manual_seed(42)
 cudnn.deterministic = True
+cudnn.benchmark = False
 
 for task in conf.tasks:
+    torch.manual_seed(42)
+    np.random.seed(42)
+    random.seed(42)
     try:
         image_dataset = torch.load(conf.image_dataset_path)
     except FileNotFoundError:
