@@ -17,7 +17,7 @@ image_dataset_path = '/tmp/image_dataset.pth'
 fusion_dataset_custom_path = '/tmp/fusion_dataset_custom.pth'
 fusion_dataset_fasttext_path = '/tmp/fusion_dataset_fasttext.pth'
 
-tasks_classifier = ['1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10']  # ['direct', '1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10', 'base_fc', ]
+tasks_classifier = ['direct', '1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10']  # ['direct', '1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10', 'base_fc', ]
 tasks_optimizer = ['sgd']  # ['sgd', 'adam']
 tasks_embedding = ['fasttext'] # ['fasttext', 'custom']
 tasks_loss_weigth = ['no', 'min', 'max']
