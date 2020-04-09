@@ -52,27 +52,30 @@ for task in conf.tasks:
                       shuffle=bool(x == 'train' or x == 'val'))
         for x in conf.batch_sizes
     }
-    if task[0] == '1280x10':
+
+    if task[0] == 'direct':
         model = TextImageSideNet(300,
                                  num_classes=10,
                                  alphas=[int(i)/10 for i in task[4].split('-')],
                                  dropout_prob=.5,
                                  custom_embedding=bool(task[2] == 'custom'),
                                  custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
-    elif task[0] == '1280x512x10':
+    elif task[0] == 'base_fc':
+        model = TextImageSideNetBaseFC(300,
+                                       num_classes=10,
+                                       alphas=[int(i) / 10 for i in task[4].split('-')],
+                                       dropout_prob=.5,
+                                       custom_embedding=bool(task[2] == 'custom'),
+                                       custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
+    else:
         model = TextImageSideNetSideFC(300,
                                        num_classes=10,
                                        alphas=[int(i)/10 for i in task[4].split('-')],
                                        dropout_prob=.5,
                                        custom_embedding=bool(task[2] == 'custom'),
-                                       custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
-    else:
-        model = TextImageSideNetBaseFC(300,
-                                       num_classes=10,
-                                       alphas=[int(i)/10 for i in task[4].split('-')],
-                                       dropout_prob=.5,
-                                       custom_embedding=bool(task[2] == 'custom'),
-                                       custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
+                                       custom_num_embeddings=len(text_dataset.lookup),
+                                       side_fc=int(task[0].split('x')[1])).to(conf.device)
+
     if task[3] == 'min':
         _, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
         weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)

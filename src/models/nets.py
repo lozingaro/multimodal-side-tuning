@@ -124,7 +124,7 @@ class TextImageSideNet(nn.Module):
 class TextImageSideNetSideFC(nn.Module):
     def __init__(self, embedding_dim, num_classes, alphas=None,
                  dropout_prob=.2, custom_embedding=False,
-                 custom_num_embeddings=0):
+                 custom_num_embeddings=0, side_fc=512):
         super(TextImageSideNetSideFC, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
@@ -145,9 +145,9 @@ class TextImageSideNetSideFC(nn.Module):
             self.side_text.num_filters * len(self.side_text.windows),
             self.base.last_channel)
         self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                        nn.Linear(self.base.last_channel, 512),
+                                        nn.Linear(self.base.last_channel, side_fc),
                                         nn.Dropout(self.dropout_prob),
-                                        nn.Linear(512, self.num_classes))
+                                        nn.Linear(side_fc, self.num_classes))
 
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
