@@ -41,11 +41,10 @@ class TrainingPipeline:
                 mins = secs / 60
                 secs %= 60
 
-                # print('Epoch: %d' % (epoch + 1), " | time in %d minutes,
-                # %d seconds" % (mins, secs)) print(f'\tLoss: {
-                # train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
-                # if data_eval is not None: print(f'\tLoss: {valid_loss:.4f}(
-                # valid)\t|\tAcc: {valid_acc:.3f} (valid)')
+                print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
+                print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
+                if data_eval is not None:
+                    print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc:.3f} (valid)')
 
         except KeyboardInterrupt:
             pass
@@ -54,14 +53,13 @@ class TrainingPipeline:
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
         if data_test is not None:
-            # print('Checking the results of test dataset...')
+            print('Checking the results of test dataset...')
             test_loss, test_acc, confusion_matrix = self._eval(data_test)
-            # print(f'\tBest Acc: {best_valid_acc:.3f} (valid)') print(
-            # f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (
-            # test)\n') print(f'\n{"Category":10s} - Accuracy')
-            # for i,r in enumerate(confusion_matrix):
-            # print(f'{data_test.dataset.dataset.classes[i]:10s} -
-            # {r[i] / np.sum(r):.3f}')
+            print(f'\tBest Acc: {best_valid_acc:.3f} (valid)')
+            print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
+            print(f'\n{"Category":10s} - Accuracy')
+            for i, r in enumerate(confusion_matrix):
+                print(f'{data_test.dataset.dataset.classes[i]:10s} - {r[i] / np.sum(r):.3f}')
 
         #     fig, ax = plt.subplots(figsize=(8, 6))
         #     ax.matshow(confusion_matrix,

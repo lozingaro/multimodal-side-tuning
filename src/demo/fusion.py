@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import FusionDataset, ImageDataset, TextDataset
-from models import TextImageSideNet, TrainingPipeline, TextImageSideNetBaseFC, TextImageSideNetSideFC
+from models import FusionSideNet, TrainingPipeline, FusionNetConcat, FusionSideNetSideFC
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -54,27 +54,26 @@ for task in conf.tasks:
     }
 
     if task[0] == 'direct':
-        model = TextImageSideNet(300,
-                                 num_classes=10,
-                                 alphas=[int(i)/10 for i in task[4].split('-')],
-                                 dropout_prob=.5,
-                                 custom_embedding=bool(task[2] == 'custom'),
-                                 custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
-    elif task[0] == 'base_fc':
-        model = TextImageSideNetBaseFC(300,
-                                       num_classes=10,
-                                       alphas=[int(i) / 10 for i in task[4].split('-')],
-                                       dropout_prob=.5,
-                                       custom_embedding=bool(task[2] == 'custom'),
-                                       custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
+        model = FusionSideNet(300,
+                              num_classes=10,
+                              alphas=[int(i)/10 for i in task[4].split('-')],
+                              dropout_prob=.5,
+                              custom_embedding=bool(task[2] == 'custom'),
+                              custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
+    elif task[0] == 'concat':
+        model = FusionNetConcat(300,
+                                num_classes=10,
+                                dropout_prob=.5,
+                                custom_embedding=bool(task[2] == 'custom'),
+                                custom_num_embeddings=len(text_dataset.lookup)).to(conf.device)
     else:
-        model = TextImageSideNetSideFC(300,
-                                       num_classes=10,
-                                       alphas=[int(i)/10 for i in task[4].split('-')],
-                                       dropout_prob=.5,
-                                       custom_embedding=bool(task[2] == 'custom'),
-                                       custom_num_embeddings=len(text_dataset.lookup),
-                                       side_fc=int(task[0].split('x')[1])).to(conf.device)
+        model = FusionSideNetSideFC(300,
+                                    num_classes=10,
+                                    alphas=[int(i)/10 for i in task[4].split('-')],
+                                    dropout_prob=.5,
+                                    custom_embedding=bool(task[2] == 'custom'),
+                                    custom_num_embeddings=len(text_dataset.lookup),
+                                    side_fc=int(task[0].split('x')[1])).to(conf.device)
 
     if task[3] == 'min':
         _, c = np.unique(np.array(dataset.targets)[dataloaders['train'].dataset.indices], return_counts=True)
@@ -91,6 +90,7 @@ for task in conf.tasks:
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / 100.0) ** .5)
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
     pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device)
     best_valid_acc, test_acc, confusion_matrix = pipeline.run(dataloaders['train'],
                                                               dataloaders['val'],
