@@ -56,11 +56,11 @@ class FusionNetConcat(nn.Module):
         return x
 
 
-class FusionSideNet(nn.Module):
+class FusionSideNetDirect(nn.Module):
     def __init__(self, embedding_dim, num_classes, alphas=None,
                  dropout_prob=.2, custom_embedding=False,
                  custom_num_embeddings=0):
-        super(FusionSideNet, self).__init__()
+        super(FusionSideNetDirect, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
         if alphas is None:
@@ -102,11 +102,11 @@ class FusionSideNet(nn.Module):
         return x, d
 
 
-class FusionSideNetSideFC(nn.Module):
+class FusionSideNetFc(nn.Module):
     def __init__(self, embedding_dim, num_classes, alphas=None,
                  dropout_prob=.2, custom_embedding=False,
                  custom_num_embeddings=0, side_fc=512):
-        super(FusionSideNetSideFC, self).__init__()
+        super(FusionSideNetFc, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
         if alphas is None:
@@ -230,7 +230,7 @@ class ShawnNet(nn.Module):
         self.custom_embedding = custom_embedding
 
         if self.custom_embedding:
-            self.embedding = nn.Embedding(custom_num_embeddings, embedding_dim)
+            self.embedding = nn.Embedding(custom_num_embeddings, self.embedding_dim)
         self.convs = nn.ModuleList([
             nn.Conv2d(1, self.num_filters, (i, self.embedding_dim)) for i in
             self.windows

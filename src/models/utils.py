@@ -2,20 +2,22 @@ import copy
 import itertools
 import time
 
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from tqdm import tqdm
 
 
 class TrainingPipeline:
 
     def __init__(self, model, criterion, optimizer, scheduler=None,
-                 device='cuda'):
+                 device='cuda', num_classes=10):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
         self.device = device
+        self.num_classes = num_classes
 
     def run(self, data_train, data_eval=None, data_test=None,
             num_epochs=50):
@@ -59,27 +61,10 @@ class TrainingPipeline:
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
             print(f'\n{"Category":10s} - Accuracy')
             for i, r in enumerate(confusion_matrix):
-                print(f'{data_test.dataset.dataset.classes[i]:10s} - {r[i] / np.sum(r):.3f}')
+                print(f'{i} - {r[i] / np.sum(r):.3f}')
 
-        #     fig, ax = plt.subplots(figsize=(8, 6))
-        #     ax.matshow(confusion_matrix,
-        #                aspect='auto',
-        #                vmin=0,
-        #                vmax=np.max(confusion_matrix),
-        #                cmap=plt.get_cmap('Reds'))
-        #     plt.ylabel('Actual Category')
-        #     plt.yticks(range(10), data_test.dataset.dataset.classes)
-        #     plt.xlabel('Predicted Category')
-        #     plt.xticks(range(10), data_test.dataset.dataset.classes)
-        #     for i in range(len(data_test.dataset.dataset.classes)):
-        #         for j in range(len(data_test.dataset.dataset.classes)):
-        #             ax.text(j, i, confusion_matrix[i, j], ha="center",
-        #                     va="center")
-        #     fig.tight_layout()
-        #     plt.show()
-        #
-        # plt.plot(train_distances)
-        # plt.show()
+        plt.plot(train_distances)
+        plt.show()
         return best_valid_acc, test_acc, confusion_matrix
 
     def _train(self, data):
@@ -89,7 +74,7 @@ class TrainingPipeline:
         train_acc = 0.0
         distances = []
 
-        for inputs, labels in data:
+        for _, (inputs, labels) in tqdm(enumerate(data)):
             self.optimizer.zero_grad()
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
@@ -123,9 +108,9 @@ class TrainingPipeline:
 
         eval_loss = 0.0
         eval_acc = 0
-        confusion_matrix = np.zeros([10, 10], int)
+        confusion_matrix = np.zeros([self.num_classes, self.num_classes], int)
 
-        for inputs, labels in data:
+        for _, (inputs, labels) in tqdm(enumerate(data)):
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
                 for i in range(len(inputs)):

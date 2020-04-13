@@ -20,9 +20,9 @@ np.random.seed(42)
 random.seed(42)
 
 
-class TobaccoDataset(torch.utils.data.Dataset):
+class RvlDataset(torch.utils.data.Dataset):
     def __init__(self, img_root_dir, txt_root_dir):
-        super(TobaccoDataset, self).__init__()
+        super(RvlDataset, self).__init__()
         self.targets = []
         self.imgs = []
         self.txts = []
@@ -41,9 +41,9 @@ class TobaccoDataset(torch.utils.data.Dataset):
         return len(self.targets)
 
 
-class TobaccoImgDataset(torch.utils.data.Dataset):
+class RvlImgDataset(torch.utils.data.Dataset):
     def __init__(self, img_root_dir):
-        super(TobaccoImgDataset, self).__init__()
+        super(RvlImgDataset, self).__init__()
         self.targets = []
         self.imgs = []
         for i, img_class_path in enumerate(os.scandir(img_root_dir)):
@@ -59,9 +59,9 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
         return len(self.targets)
 
 
-class TobaccoTxtDataset(torch.utils.data.Dataset):
+class RvlTxtDataset(torch.utils.data.Dataset):
     def __init__(self, txt_root_dir):
-        super(TobaccoTxtDataset, self).__init__()
+        super(RvlTxtDataset, self).__init__()
         self.targets = []
         self.txts = []
         for i, txt_class_path in enumerate(os.scandir(txt_root_dir)):
@@ -78,13 +78,11 @@ class TobaccoTxtDataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
-    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
-    d = TobaccoDataset(f'{img_dataset_dir}', f'{txt_dataset_dir}')
-    r = torch.utils.data.random_split(d, [800, 200, 2482])
-    d_train = r[0]
-    d_val = r[1]
-    d_test = r[2]
-    dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-    dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-    dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
+    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/RVL-CDIP'
+    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-Large'
+    d_train = RvlDataset(f'{img_dataset_dir}/train', f'{txt_dataset_dir}/train')
+    dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
+    d_val = RvlDataset(f'{img_dataset_dir}/val', f'{txt_dataset_dir}/val')
+    dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
+    d_test = RvlDataset(f'{img_dataset_dir}/test', f'{txt_dataset_dir}/test')
+    dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
