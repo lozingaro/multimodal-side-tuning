@@ -1,3 +1,7 @@
+"""
+LICENSE and explanation
+"""
+
 import itertools
 import torch
 

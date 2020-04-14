@@ -1,3 +1,8 @@
+"""
+Creative Common 4.0 License for reuse with citation
+&copy; 2020 Stefano Pio Zingaro
+"""
+
 from __future__ import division, print_function
 
 import os

@@ -1,3 +1,8 @@
+"""
+Creative Common 4.0 License for reuse with citation
+&copy; 2020 Stefano Pio Zingaro
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
