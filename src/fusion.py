@@ -59,7 +59,7 @@ _, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / num_classes) ** .5)
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
