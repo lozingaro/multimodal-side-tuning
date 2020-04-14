@@ -23,10 +23,12 @@ random.seed(42)
 class TobaccoDataset(torch.utils.data.Dataset):
     def __init__(self, img_root_dir, txt_root_dir):
         super(TobaccoDataset, self).__init__()
+        self.classes = []
         self.targets = []
         self.imgs = []
         self.txts = []
         for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
+            self.classes += img_class_path.name
             for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
                 self.targets += [i]
                 self.imgs += [img_path.path]
@@ -44,15 +46,19 @@ class TobaccoDataset(torch.utils.data.Dataset):
 class TobaccoImgDataset(torch.utils.data.Dataset):
     def __init__(self, img_root_dir):
         super(TobaccoImgDataset, self).__init__()
+        self.classes = []
         self.targets = []
         self.imgs = []
         for i, img_class_path in enumerate(os.scandir(img_root_dir)):
+            self.classes += img_class_path.name
             for img_path in os.scandir(img_class_path):
                 self.targets += [i]
                 self.imgs += [img_path.path]
 
     def __getitem__(self, item):
-        img = tf.to_tensor(Image.open(self.imgs[item]))
+        img = Image.open(self.imgs[item])
+        img = tf.to_tensor(img)
+        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         return img, self.targets[item]
 
     def __len__(self):
@@ -62,9 +68,11 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
 class TobaccoTxtDataset(torch.utils.data.Dataset):
     def __init__(self, txt_root_dir):
         super(TobaccoTxtDataset, self).__init__()
+        self.classes = []
         self.targets = []
         self.txts = []
         for i, txt_class_path in enumerate(os.scandir(txt_root_dir)):
+            self.classes += txt_class_path.name
             for txt_path in os.scandir(txt_class_path):
                 self.targets += [i]
                 self.txts += [txt_path.path]
