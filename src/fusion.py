@@ -31,7 +31,7 @@ num_classes = 10
 num_epochs = 50
 result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
 cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/fusion_256_tobacco.png'
-side_fc = 512
+side_fc = 256
 
 # d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train')
 # dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
@@ -47,8 +47,8 @@ r = torch.utils.data.random_split(d, [800, 200, 2482])
 d_train = r[0]
 d_val = r[1]
 d_test = r[2]
-dl_train = DataLoader(d_train, batch_size=32, shuffle=True)
-dl_val = DataLoader(d_val, batch_size=32, shuffle=True)
+dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
 dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
 labels = d.classes
