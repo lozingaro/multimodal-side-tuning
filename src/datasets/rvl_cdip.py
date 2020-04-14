@@ -32,13 +32,14 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, (txt_label, img_label) in enumerate(zip(sorted(os.listdir(txt_root_dir)), sorted(os.listdir(img_root_dir)))):
-            txt_class_path = f'{txt_root_dir}/{txt_label}'
-            img_class_path = f'{img_root_dir}/{img_label}'
-            self.classes += [txt_label]
-            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
+        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+            txt_class_path = f'{txt_root_dir}/{label}'
+            img_class_path = f'{img_root_dir}/{label}'
+            self.classes += [label]
+            for txt_path in os.scandir(txt_class_path):
+                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
                 self.targets += [i]
-                self.imgs += [img_path.path]
+                self.imgs += [img_path]
                 self.txts += [txt_path.path]
 
     def __getitem__(self, item):
