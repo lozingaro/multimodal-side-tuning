@@ -28,7 +28,7 @@ class TobaccoDataset(torch.utils.data.Dataset):
         self.imgs = []
         self.txts = []
         for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
-            self.classes += img_class_path.name
+            self.classes += [img_class_path.name]
             for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
                 self.targets += [i]
                 self.imgs += [img_path.path]
@@ -50,7 +50,7 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         for i, img_class_path in enumerate(os.scandir(img_root_dir)):
-            self.classes += img_class_path.name
+            self.classes += [img_class_path.name]
             for img_path in os.scandir(img_class_path):
                 self.targets += [i]
                 self.imgs += [img_path.path]
@@ -72,7 +72,7 @@ class TobaccoTxtDataset(torch.utils.data.Dataset):
         self.targets = []
         self.txts = []
         for i, txt_class_path in enumerate(os.scandir(txt_root_dir)):
-            self.classes += txt_class_path.name
+            self.classes += [txt_class_path.name]
             for txt_path in os.scandir(txt_class_path):
                 self.targets += [i]
                 self.txts += [txt_path.path]
