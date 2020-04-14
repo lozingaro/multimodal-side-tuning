@@ -30,8 +30,8 @@ random.seed(42)
 num_classes = 10
 num_epochs = 50
 result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
-cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/fusion_256_tobacco.png'
-side_fc = 256
+cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_256_tobacco.png'
+side_fc = 128
 
 # d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train')
 # dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
