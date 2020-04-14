@@ -61,7 +61,7 @@ class TrainingPipeline:
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
             print(f'\n{"Category":10s} - Accuracy')
             for i, r in enumerate(confusion_matrix):
-                print(f'{i} - {r[i] / np.sum(r):.3f}')
+                print(f'{data_test.dataset.classes} - {r[i] / np.sum(r):.3f}')
 
         plt.plot(train_distances)
         plt.show()
