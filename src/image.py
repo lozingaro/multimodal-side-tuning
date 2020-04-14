@@ -23,7 +23,6 @@ np.random.seed(42)
 random.seed(42)
 
 num_classes = 10
-labels = conf.tobacco_labels
 num_epochs = 100
 result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
 cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/cm_mobilenet_tobacco.png'
@@ -35,6 +34,7 @@ cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confus
 # d_test = RvlImgDataset(f'{conf.rlv_img_root_dir}/test')
 # dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
 # train_targets = d_train.targets
+# labels = d_train.classes
 
 d = TobaccoImgDataset(conf.tobacco_img_root_dir)
 r = torch.utils.data.random_split(d, [800, 200, 2482])
@@ -45,6 +45,7 @@ dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
 dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
 dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
+labels = d.classes
 
 model = MobileNet(num_classes=num_classes, dropout_prob=.5).to(conf.core.device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
