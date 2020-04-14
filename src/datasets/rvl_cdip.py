@@ -27,12 +27,14 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
-            self.classes += [img_class_path.name]
-            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
-                self.targets += [i]
-                self.imgs += [img_path.path]
-                self.txts += [txt_path.path]
+        with zip(os.scandir(txt_root_dir), os.scandir(img_root_dir)) as it:
+            for i, (txt_class_path, img_class_path) in enumerate(it):
+                self.classes += [img_class_path.name]
+                with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as jt:
+                    for txt_path, img_path in jt:
+                        self.targets += [i]
+                        self.imgs += [img_path.path]
+                        self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         img = tf.to_tensor(Image.open(self.imgs[item]))
@@ -49,11 +51,13 @@ class RvlImgDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.imgs = []
-        for i, img_class_path in enumerate(os.scandir(img_root_dir)):
-            self.classes += [img_class_path.name]
-            for img_path in os.scandir(img_class_path):
-                self.targets += [i]
-                self.imgs += [img_path.path]
+        with os.scandir(img_root_dir) as it:
+            for i, img_class_path in enumerate(it):
+                self.classes += [img_class_path.name]
+                with os.scandir(img_class_path) as jt:
+                    for img_path in jt:
+                        self.targets += [i]
+                        self.imgs += [img_path.path]
 
     def __getitem__(self, item):
         img = Image.open(self.imgs[item])
@@ -71,11 +75,13 @@ class RvlTxtDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.txts = []
-        for i, txt_class_path in enumerate(os.scandir(txt_root_dir)):
-            self.classes += [txt_class_path.name]
-            for txt_path in os.scandir(txt_class_path):
-                self.targets += [i]
-                self.txts += [txt_path.path]
+        with os.scandir(txt_root_dir) as it:
+            for i, txt_class_path in enumerate(it):
+                self.classes += [txt_class_path.name]
+                with os.scandir(txt_class_path) as jt:
+                    for txt_path in jt:
+                        self.targets += [i]
+                        self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
