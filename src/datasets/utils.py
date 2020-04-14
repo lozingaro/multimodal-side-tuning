@@ -6,6 +6,7 @@ import os
 import random
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
 from PIL import Image, UnidentifiedImageError
 from torch.backends import cudnn
 from warnings import filterwarnings
@@ -26,7 +27,7 @@ def load_txt_samples(txt_data_dir):
     for label in sorted(os.listdir(orig_dir)):
         class_path = f'{orig_dir}/{label}'
         with os.scandir(class_path) as it:
-            for path in it:
+            for _, path in tqdm(enumerate(it)):
                 with open(path, 'rb') as f:
                     txt = f.read()
                 doc = [''.join([i for i in token.decode('UTF-8') if i.isalnum()]) for token in txt.split()]
@@ -51,7 +52,7 @@ def load_img_samples(img_data_dir):
     for label in sorted(os.listdir(orig_dir)):
         class_path = f'{orig_dir}/{label}'
         with os.scandir(class_path) as it:
-            for path in it:
+            for _, path in tqdm(enumerate(it)):
                 with open(path, 'rb') as f:
                     try:
                         img = Image.open(f)
