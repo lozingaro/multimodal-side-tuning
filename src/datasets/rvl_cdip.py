@@ -32,10 +32,10 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, label in enumerate(zip(sorted(os.listdir(txt_root_dir)), sorted(os.listdir(img_root_dir)))):
-            txt_class_path = f'{txt_root_dir}/{label}'
-            img_class_path = f'{img_root_dir}/{label}'
-            self.classes += [label]
+        for i, (txt_label, img_label) in enumerate(zip(sorted(os.listdir(txt_root_dir)), sorted(os.listdir(img_root_dir)))):
+            txt_class_path = f'{txt_root_dir}/{txt_label}'
+            img_class_path = f'{img_root_dir}/{img_label}'
+            self.classes += [txt_label]
             with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as it:
                 for txt_path, img_path in it:
                     self.targets += [i]
