@@ -25,7 +25,7 @@ random.seed(42)
 num_classes = 16
 num_epochs = 10
 result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
-cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/cm_mobilenet_tobacco.png'
+cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/mobilenet_tobacco.png'
 
 d_train = RvlImgDataset(f'{conf.rlv_img_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
@@ -55,7 +55,7 @@ criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / num_epochs) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
-best_valid_acc, test_acc, cm = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs)
+best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
 s = f'mobilenetv2,sgd,-,min,-,' \
     f'{best_valid_acc:.3f},' \

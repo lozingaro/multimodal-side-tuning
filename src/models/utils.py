@@ -20,7 +20,7 @@ class TrainingPipeline:
         self.num_classes = num_classes
 
     def run(self, data_train, data_eval=None, data_test=None,
-            num_epochs=50):
+            num_epochs=50, classes=None):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
         train_distances = []
@@ -61,11 +61,9 @@ class TrainingPipeline:
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
             print(f'\n{"Category":10s} - Accuracy')
             for i, r in enumerate(confusion_matrix):
-                print(f'{data_test.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
+                print(f'{classes[i]} - {r[i] / np.sum(r):.3f}')
 
-        plt.plot(train_distances)
-        plt.show()
-        return best_valid_acc, test_acc, confusion_matrix
+        return best_valid_acc, test_acc, confusion_matrix, train_distances
 
     def _train(self, data):
         self.model.train()
