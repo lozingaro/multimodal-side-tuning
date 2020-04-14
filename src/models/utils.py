@@ -1,8 +1,7 @@
-import copy
 import itertools
 import time
 
-import matplotlib.pyplot as plt
+import copy
 import numpy as np
 import torch
 from tqdm import tqdm

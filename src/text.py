@@ -47,11 +47,7 @@ dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
 labels = d.classes
 
-model = ShawnNet(embedding_dim=300,
-                 num_filters=512,
-                 windows=[3, 4, 5],
-                 num_classes=num_classes,
-                 dropout_prob=.5).to(conf.core.device)
+model = ShawnNet(embedding_dim=300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(conf.core.device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)

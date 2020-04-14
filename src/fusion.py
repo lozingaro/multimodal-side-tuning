@@ -47,7 +47,7 @@ dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
 labels = d.classes
 
-model = FusionSideNetFc(300, num_classes=10, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=256).to(conf.core.device)
+model = FusionSideNetFc(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=256).to(conf.core.device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)
