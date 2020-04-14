@@ -36,11 +36,10 @@ class RvlDataset(torch.utils.data.Dataset):
             txt_class_path = f'{txt_root_dir}/{txt_label}'
             img_class_path = f'{img_root_dir}/{img_label}'
             self.classes += [txt_label]
-            with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as it:
-                for txt_path, img_path in it:
-                    self.targets += [i]
-                    self.imgs += [img_path.path]
-                    self.txts += [txt_path.path]
+            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
+                self.targets += [i]
+                self.imgs += [img_path.path]
+                self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         img = tf.to_tensor(Image.open(self.imgs[item]))
