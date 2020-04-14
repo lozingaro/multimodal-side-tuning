@@ -1,16 +1,14 @@
 from __future__ import division, print_function
 
-import os
-import random
-from warnings import filterwarnings
-
 import fasttext
 import numpy as np
+import os
+import random
 import torch
 import torch.nn.functional as F
 from PIL import Image, UnidentifiedImageError
 from torch.backends import cudnn
-import torchvision.transforms.functional as tf
+from warnings import filterwarnings
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -67,8 +65,8 @@ def load_img_samples(img_data_dir):
 
 
 if __name__ == '__main__':
-    # load_img_samples('Tobacco3482-jpg')
+    load_img_samples('Tobacco3482-jpg')
     load_txt_samples('QS-OCR-small')
     for s in ['val', 'test', 'train']:
-        # load_img_samples(f'RVL-CDIP/{s}')
+        load_img_samples(f'RVL-CDIP/{s}')
         load_txt_samples(f'QS-OCR-Large/{s}')

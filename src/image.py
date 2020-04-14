@@ -28,11 +28,11 @@ result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/re
 cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/cm_mobilenet_tobacco.png'
 
 d_train = RvlImgDataset(f'{conf.rlv_img_root_dir}/train')
-dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
+dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
 d_val = RvlImgDataset(f'{conf.rlv_img_root_dir}/val')
-dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
 d_test = RvlImgDataset(f'{conf.rlv_img_root_dir}/test')
-dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
+dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
 
