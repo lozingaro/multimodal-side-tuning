@@ -65,8 +65,8 @@ def load_img_samples(img_data_dir):
 
 
 if __name__ == '__main__':
-    load_img_samples('Tobacco3482-jpg')
+    # load_img_samples('Tobacco3482-jpg')
     load_txt_samples('QS-OCR-small')
     for s in ['val', 'test', 'train']:
-        load_img_samples(f'RVL-CDIP/{s}')
+        # load_img_samples(f'RVL-CDIP/{s}')
         load_txt_samples(f'QS-OCR-Large/{s}')
