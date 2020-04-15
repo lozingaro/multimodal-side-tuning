@@ -29,7 +29,7 @@ random.seed(42)
 
 num_classes = 16
 num_epochs = 10
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rlv.csv'
+result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rvl.csv'
 cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/shawn_rvl.png'
 
 d_train = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/train')
