@@ -33,11 +33,11 @@ result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/re
 cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_256_rvl.png'
 side_fc = 256
 
-d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train')
+d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val')
+d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
 dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test')
+d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
 dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
