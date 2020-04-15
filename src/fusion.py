@@ -27,31 +27,31 @@ torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
 
-num_classes = 16
-num_epochs = 10
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rvl.csv'
-cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_256_rvl.png'
+num_classes = 10
+num_epochs = 100
+result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
+cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_256_tobacco.png'
 side_fc = 256
 
-d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
-dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
-dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
-dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
-train_targets = d_train.targets
-labels = d_train.classes
+# d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
+# dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
+# d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
+# dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
+# d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
+# dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
+# train_targets = d_train.targets
+# labels = d_train.classes
 
-# d = TobaccoDataset(conf.tobacco_img_root_dir, conf.tobacco_txt_root_dir)
-# r = torch.utils.data.random_split(d, [800, 200, 2482])
-# d_train = r[0]
-# d_val = r[1]
-# d_test = r[2]
-# dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-# dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-# dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
-# train_targets = d_train.dataset.targets
-# labels = d.classes
+d = TobaccoDataset(conf.tobacco_img_root_dir, conf.tobacco_txt_root_dir)
+r = torch.utils.data.random_split(d, [800, 200, 2482])
+d_train = r[0]
+d_val = r[1]
+d_test = r[2]
+dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
+dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
+train_targets = d_train.dataset.targets
+labels = d.classes
 
 model = FusionSideNetFc(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=side_fc).to(conf.core.device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
