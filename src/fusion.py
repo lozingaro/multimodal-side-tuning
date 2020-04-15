@@ -55,7 +55,7 @@ labels = d_train.classes
 
 model = FusionSideNetFc(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=side_fc).to(conf.core.device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-_, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
+_, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
