@@ -29,8 +29,8 @@ random.seed(42)
 
 num_classes = 16
 num_epochs = 10
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
-cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/mobilenet_tobacco.png'
+result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rvl.csv'
+cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/mobilenet_rvl.png'
 
 d_train = RvlImgDataset(f'{conf.rlv_img_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
