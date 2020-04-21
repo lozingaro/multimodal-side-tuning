@@ -4,7 +4,7 @@
   <img src="./assets/img/method_model_overview.png"  width="900px" />
 </div>
 
-In this repository we provide implementation of side-tuning framework using multimodal input features. The side-tuning framework is originally proposed by 
+In this repository we provide implementation of side-tuning framework using multimodal input features. The side-tuning framework was originally proposed in the paper [Side-Tuning: Network Adaptation via Additive Side Networks](https://arxiv.org/abs/1912.13503).
 
 ## Multimodal Side-Tuning for Document Classification
 
@@ -18,7 +18,7 @@ In this repository we provide implementation of side-tuning framework using mult
 
 ## Quickstart [\[^\]](#Contents)
 
-The proposed implementation is written in `Python3` using the `PyTorch` deep-learning framework and a list of used packages along with their version can be found in the [requirements.txt](requirements.txt). Simpy install it via:
+The proposed implementation depends on `Python3.6+` and uses the `PyTorch` deep-learning framework, a list of used packages along with their version can be found in the [requirements.txt](requirements.txt). Simpy install it via:
 
 ```sh
 pip install -r requirements.txt
@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 However, some specification should be made:
 
-1. the `FastText` package has been compiled [from the source repository](https://github.com/facebookresearch/fastText) and not installed from the `PyPI` repository.
+1. the `FastText` package has been compiled [from the source repository](https://github.com/facebookresearch/fastText) and not installed from `PyPI`.
 
 ## Running experiments [\[^\]](#Contents)
 
@@ -34,7 +34,7 @@ However, some specification should be made:
 
 ## Citation [\[^\]](#Contents)
 
-If you find this repository or toolkit useful, then please cite the work:
+If you find this repository useful, then please cite the work:
 
 ```bibtex
 @inproceedings{Zingaro2020,
@@ -44,7 +44,7 @@ If you find this repository or toolkit useful, then please cite the work:
 }
 ```
 
-and the original paper for the Side-tuning framework:
+and the original paper proposing the Side-tuning framework:
 
 ```bibtex
 @inproceedings{sidetuning2019,
