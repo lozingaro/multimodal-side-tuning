@@ -28,9 +28,11 @@ However, some specification should be made:
 
 1. the `FastText` package has been compiled [from the source repository](https://github.com/facebookresearch/fastText) and not installed from `PyPI`.
 
+Download the Tobacco3482 dataset to test the demo or try with the RVL-CDIP full dataset.
+
 ## Running experiments [\[^\]](#Contents)
 
-
+Describe the process to perform demo at least with Tobacco3482 dataset.
 
 ## Citation [\[^\]](#Contents)
 
