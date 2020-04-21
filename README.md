@@ -20,7 +20,7 @@ In this repository we provide implementation of side-tuning framework using mult
 
 The proposed implementation is written in `Python3` using the `PyTorch` deep-learning framework and a list of used packages along with their version can be found in the [requirements.txt](requirements.txt). Simpy install it via:
 
-```bash
+```sh
 pip install -r requirements.txt
 ```
 
