@@ -1,3 +1,4 @@
+architecture,optimizer,embedding,loss_weigth,coeffs,val_acc,test_acc,adve,email,form,letter,memo,news,note,report,resume,scientific
 shawn,sgd,fasttext,no,-,0.700,0.682,0.475,0.545,0.942,0.274,0.691,0.392,0.814,0.640,0.737,0.778
 mobilenetv2,sgd,-,no,-,0.875,0.855,0.961,0.957,0.823,0.892,0.906,0.925,0.834,0.683,0.824,0.541
 shawn,sgd,fasttext,min,-,0.695,0.678,0.429,0.568,0.944,0.333,0.649,0.402,0.837,0.684,0.726,0.768
