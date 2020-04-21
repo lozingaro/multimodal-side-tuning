@@ -1,7 +1,7 @@
 # Multimodal `Side-tuning`
 
-<div align="center">
-  <img src="./assets/img/method_model_overview.png"  width="900px" />
+<div>
+  <img src="./assets/img/method_model_overview.png" alt="method model overview" width="1462" />
 </div>
 
 In this repository we provide implementation of side-tuning framework using multimodal input features. The side-tuning framework was originally proposed in the paper [Side-Tuning: Network Adaptation via Additive Side Networks](https://arxiv.org/abs/1912.13503).

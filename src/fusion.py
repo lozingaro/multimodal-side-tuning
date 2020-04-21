@@ -92,8 +92,6 @@ s = f'1280x{side_fc}x10,sgd,fasttext,min,3-3-4,' \
 with open(result_file, 'a+') as f:
     f.write(s)
 
-plot_cm(cm)
-
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')

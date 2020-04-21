@@ -29,13 +29,14 @@ from tqdm import tqdm
 class TrainingPipeline:
 
     def __init__(self, model, criterion, optimizer, scheduler=None,
-                 device='cuda', num_classes=10):
+                 device='cuda', num_classes=10, debug=True):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
         self.device = device
         self.num_classes = num_classes
+        self.debug = debug
 
     def run(self, data_train, data_eval=None, data_test=None,
             num_epochs=50, classes=None):
@@ -61,25 +62,27 @@ class TrainingPipeline:
                 mins = secs / 60
                 secs %= 60
 
-                print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
-                print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
-                if data_eval is not None:
-                    print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc:.3f} (valid)')
+                if self.debug:
+                    print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
+                    print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
+                    if data_eval is not None:
+                        print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc:.3f} (valid)')
 
         except KeyboardInterrupt:
             pass
 
         self.model.load_state_dict(best_model)
+        torch.save(self.model, '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/models/best_model.ptr')
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
         if data_test is not None:
-            print('Checking the results of test dataset...')
             test_loss, test_acc, confusion_matrix = self._eval(data_test)
-            print(f'\tBest Acc: {best_valid_acc:.3f} (valid)')
-            print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
-            print(f'\n{"Category":10s} - Accuracy')
-            for i, r in enumerate(confusion_matrix):
-                print(f'{classes[i]} - {r[i] / np.sum(r):.3f}')
+            if self.debug:
+                print(f'\tBest Acc: {best_valid_acc:.3f} (valid)')
+                print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
+                print(f'\n{"Category":10s} - Accuracy')
+                for i, r in enumerate(confusion_matrix):
+                    print(f'{classes[i]} - {r[i] / np.sum(r):.3f}')
 
         return best_valid_acc, test_acc, confusion_matrix, train_distances
 
