@@ -1,7 +1,7 @@
 # Multimodal `Side-tuning`
 
 <div align="center">
-  <img src="./assets/img/method-model-overview.png"  width="900px" />
+  <img src="./assets/img/method_model_overview.png"  width="900px" />
 </div>
 
 In this repository we provide implementation of side-tuning framework using multimodal input features. The side-tuning framework is originally proposed by 
