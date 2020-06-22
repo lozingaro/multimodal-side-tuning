@@ -1,4 +1,5 @@
-data/
-.idea
+test/models
+data
 .DS_Store
-__pycache__
+.idea/
+__pycache__/

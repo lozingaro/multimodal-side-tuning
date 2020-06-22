@@ -49,8 +49,8 @@ cudnn.benchmark = False
 num_classes = 10
 num_epochs = 100
 side_fc = 256
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_tobacco.csv'
-cm_file = f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_{side_fc}_tobacco.png'
+result_file = '../test/results_tobacco.csv'
+cm_file = f'../test/confusion_matrices/side_{side_fc}_tobacco.png'
 
 for task in conf.tasks:
     torch.manual_seed(42)

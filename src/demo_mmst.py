@@ -52,8 +52,8 @@ random.seed(42)
 num_classes = 16
 num_epochs = 10
 side_fc = 256
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rvl.csv'
-cm_file = f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/side_{side_fc}_rvl.png'
+result_file = '../test/results_rvl.csv'
+cm_file = f'../test/confusion_matrices/side_{side_fc}_rvl.png'
 
 d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
