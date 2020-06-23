@@ -50,8 +50,6 @@ np.random.seed(42)
 random.seed(42)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-num_epochs = 10
-
 # d_train = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/train')
 # dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
 # d_val = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/val')
@@ -62,17 +60,16 @@ num_epochs = 10
 # labels = d_train.classes
 
 d = TobaccoTxtDataset(conf.tobacco_txt_root_dir)
-r = torch.utils.data.random_split(d, [800, 200, 2482])
-d_train = r[0]
-d_val = r[1]
-d_test = r[2]
+d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
 dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
 dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
 dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
 labels = d.classes
 
-num_classes = np.unique(train_targets)
+num_classes = len(np.unique(train_targets))
+num_epochs = 100
+
 model = ShawnNet(300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(train_targets), return_counts=True)
@@ -85,7 +82,11 @@ best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num
 
 result_file = '../test/results_rvl.csv'
 with open(result_file, 'a+') as f:
-    f.write(f'shawn,sgd,fasttext,min,-,'
+    f.write(f'shawn,'
+            f'sgd,'
+            f'fasttext,'
+            f'min,'
+            f'-,'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
