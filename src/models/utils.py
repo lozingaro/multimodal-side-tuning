@@ -38,8 +38,7 @@ class TrainingPipeline:
         self.num_classes = num_classes
         self.debug = debug
 
-    def run(self, data_train, data_eval=None, data_test=None,
-            num_epochs=50, classes=None):
+    def run(self, data_train, data_eval=None, data_test=None, num_epochs=50, classes=None):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
         train_distances = []
@@ -72,7 +71,7 @@ class TrainingPipeline:
             pass
 
         self.model.load_state_dict(best_model)
-        torch.save(self.model, '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/models/best_model.ptr')
+        torch.save(self.model, '/tmp/best_model.ptr')
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
         if data_test is not None:
