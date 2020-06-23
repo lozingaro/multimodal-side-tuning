@@ -1,4 +1,4 @@
-architecture,optimizer,embedding,loss_weigth,coeffs,val_acc,test_acc,advertisement,budget,email,file folder,form,handwritten,invoice,letter,memo,news article,presentation,questionnaire,resume,scientific publication,scientific report,specification
-mobilenetv2,sgd,-,min,-,0.914,0.911,0.922,0.899,0.950,0.966,0.847,0.990,0.895,0.902,0.938,0.909,0.847,0.872,0.965,0.924,0.825,0.926
-1280x256x10,sgd,fasttext,min,3-3-4,0.917,0.914,0.899,0.920,0.984,0.944,0.829,0.959,0.914,0.912,0.936,0.929,0.861,0.870,0.976,0.885,0.867,0.940
-1280x256x10,sgd,fasttext,min,3-3-4,0.924,0.923,0.929,0.928,0.986,0.964,0.814,0.957,0.916,0.916,0.943,0.924,0.881,0.910,0.973,0.934,0.851,0.939
+architecture,parameters,optimizer,embedding,loss_weigth,coeffs,val_acc,test_acc,advertisement,budget,email,file folder,form,handwritten,invoice,letter,memo,news article,presentation,questionnaire,resume,scientific publication,scientific report,specification
+mobilenetv2,0,sgd,-,min,-,0.914,0.911,0.922,0.899,0.950,0.966,0.847,0.990,0.895,0.902,0.938,0.909,0.847,0.872,0.965,0.924,0.825,0.926
+1280x256x10,0,sgd,fasttext,min,3-3-4,0.917,0.914,0.899,0.920,0.984,0.944,0.829,0.959,0.914,0.912,0.936,0.929,0.861,0.870,0.976,0.885,0.867,0.940
+1280x256x10,0,sgd,fasttext,min,3-3-4,0.924,0.923,0.929,0.928,0.986,0.964,0.814,0.957,0.916,0.916,0.943,0.924,0.881,0.910,0.973,0.934,0.851,0.939

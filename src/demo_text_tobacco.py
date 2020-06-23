@@ -21,15 +21,15 @@ from __future__ import division, print_function
 import random
 from warnings import filterwarnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
 import conf
-from datasets import TobaccoTxtDataset, RvlTxtDataset
+from datasets import TobaccoTxtDataset
 from models.nets import ShawnNet
 from models.utils import TrainingPipeline
 
@@ -50,15 +50,6 @@ np.random.seed(42)
 random.seed(42)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# d_train = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/train')
-# dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-# d_val = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/val')
-# dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-# d_test = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/test')
-# dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
-# train_targets = d_train.targets
-# labels = d_train.classes
-
 d = TobaccoTxtDataset(conf.tobacco_txt_root_dir)
 d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
 dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
@@ -71,7 +62,6 @@ num_classes = len(np.unique(train_targets))
 num_epochs = 100
 
 model = ShawnNet(300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(device)
-print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).float().to(conf.device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
@@ -80,18 +70,19 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
-result_file = '../test/results_rvl.csv'
+result_file = '../test/results_tobacco.csv'
 with open(result_file, 'a+') as f:
-    f.write(f'shawn,'
-            f'sgd,'
-            f'fasttext,'
-            f'min,'
-            f'-,'
+    f.write('shawn,'
+            f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
+            'sgd,'
+            'fasttext,'
+            'min,'
+            '-,'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-cm_file = '../test/confusion_matrices/shawn_rvl.png'
+cm_file = '../test/confusion_matrices/shawn_tobacco.png'
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')
