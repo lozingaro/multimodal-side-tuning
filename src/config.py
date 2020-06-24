@@ -16,19 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import itertools
-import torch
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 tobacco_img_root_dir = '/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg'
 tobacco_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-small'
 rlv_img_root_dir = '/data01/stefanopio.zingaro/datasets/RVL-CDIP'
 rlv_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-Large'
 text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/cc.en.300.bin'
-
-tasks_classifier = ['direct', '1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10', 'concat', ]
-tasks_optimizer = ['sgd', 'adam']
-tasks_embedding = ['fasttext', 'custom']
-tasks_loss_weigth = ['min', 'max', 'no']
-tasks_coeffs = ['4-3-3', '5-3-2', '4-4-2', '3-3-4', '2-4-4', '2-3-5']
-tasks = itertools.product(tasks_classifier, tasks_optimizer, tasks_embedding, tasks_loss_weigth, tasks_coeffs)
