@@ -53,13 +53,13 @@ class TobaccoDataset(torch.utils.data.Dataset):
             for txt_path in os.scandir(txt_class_path):
                 img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
                 self.targets += [i]
-                self.imgs += [img_path]
-                self.txts += [txt_path.path]
+                img = tf.to_tensor(Image.open(img_path))
+                self.imgs += [img]
+                txt = torch.load(txt_path.path).float()
+                self.txts += [txt]
 
     def __getitem__(self, item):
-        img = tf.to_tensor(Image.open(self.imgs[item]))
-        txt = torch.load(self.txts[item]).float()
-        return (img, txt), self.targets[item]
+        return (self.imgs[item], self.txts[item]), self.targets[item]
 
     def __len__(self):
         return len(self.targets)
