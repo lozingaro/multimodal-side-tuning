@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-tobacco_img_root_dir = '/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg'
-tobacco_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-small'
-rlv_img_root_dir = '/data01/stefanopio.zingaro/datasets/RVL-CDIP'
-rlv_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-Large'
-text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/cc.en.300.bin'
+tobacco_img_root_dir = '../data/Tobacco3482-jpg'
+tobacco_txt_root_dir = '../data/QS-OCR-small'
+rlv_img_root_dir = '../data/RVL-CDIP'
+rlv_txt_root_dir = '../data/QS-OCR-Large'
+text_fasttext_model_path = '../data/cc.en.300.bin'

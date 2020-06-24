@@ -77,13 +77,13 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
             with os.scandir(img_class_path) as it:
                 for img_path in it:
                     self.targets += [i]
-                    self.imgs += [img_path.path]
+                    img = Image.open(img_path.path)
+                    img = tf.to_tensor(img)
+                    img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                    self.imgs += [img]
 
     def __getitem__(self, item):
-        img = Image.open(self.imgs[item])
-        img = tf.to_tensor(img)
-        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        return img, self.targets[item]
+        return self.imgs[item], self.targets[item]
 
     def __len__(self):
         return len(self.targets)
@@ -101,24 +101,11 @@ class TobaccoTxtDataset(torch.utils.data.Dataset):
             with os.scandir(txt_class_path) as it:
                 for txt_path in it:
                     self.targets += [i]
-                    self.txts += [txt_path.path]
+                    txt = torch.load(txt_path.path).float()
+                    self.txts += [txt]
 
     def __getitem__(self, item):
-        txt = torch.load(self.txts[item]).float()
-        return txt, self.targets[item]
+        return self.txts[item], self.targets[item]
 
     def __len__(self):
         return len(self.targets)
-
-
-if __name__ == '__main__':
-    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
-    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
-    d = TobaccoDataset(f'{img_dataset_dir}', f'{txt_dataset_dir}')
-    r = torch.utils.data.random_split(d, [800, 200, 2482])
-    d_train = r[0]
-    d_val = r[1]
-    d_test = r[2]
-    dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-    dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-    dl_test = DataLoader(d_test, batch_size=32, shuffle=False)

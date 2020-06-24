@@ -109,14 +109,3 @@ class RvlTxtDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.targets)
-
-
-if __name__ == '__main__':
-    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/RVL-CDIP'
-    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-Large'
-    d_train = RvlDataset(f'{img_dataset_dir}/train', f'{txt_dataset_dir}/train')
-    dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
-    d_val = RvlDataset(f'{img_dataset_dir}/val', f'{txt_dataset_dir}/val')
-    dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
-    d_test = RvlDataset(f'{img_dataset_dir}/test', f'{txt_dataset_dir}/test')
-    dl_test = DataLoader(d_test, batch_size=40, shuffle=False)

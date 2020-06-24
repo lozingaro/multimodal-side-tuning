@@ -1,3 +1,3 @@
-architecture,parameters,optimizer,embedding,loss_weigth,coeffs,val_acc,test_acc,adve,email,form,letter,memo,news,note,report,resume,scientific
-shawn,1860106,sgd,fasttext,min,-,0.680,0.693,0.464,0.948,0.627,0.762,0.702,0.709,0.545,0.503,0.906,0.442
-mobilenetv2,11694642,sgd,-,min,-,0.830,0.857,0.961,0.969,0.865,0.895,0.899,0.925,0.821,0.635,0.776,0.547
+architecture,time_elapsed,parameters,optimizer,embedding,loss_weigth,coeffs,val_acc,test_acc,adve,email,form,letter,memo,news,note,report,resume,scientific
+shawn,-,1860106,sgd,fasttext,min,-,0.680,0.693,0.464,0.948,0.627,0.762,0.702,0.709,0.545,0.503,0.906,0.442
+resnet18,-,11694642,sgd,-,min,-,0.830,0.857,0.961,0.969,0.865,0.895,0.899,0.925,0.821,0.635,0.776,0.547

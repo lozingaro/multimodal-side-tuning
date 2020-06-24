@@ -132,10 +132,13 @@ class FusionSideNetFc(nn.Module):
         self.alphas = alphas
         self.dropout_prob = dropout_prob
 
-        self.base = MobileNet(num_classes=self.num_classes, classify=False)
+        # self.base = MobileNet(num_classes=self.num_classes, classify=False)
+        self.base = ResNet(num_classes=self.num_classes, classify=False)
         for param in self.base.parameters():
             param.requires_grad_(False)
-        self.side_image = MobileNet(num_classes=self.num_classes, classify=False)
+        # self.side_image = MobileNet(num_classes=self.num_classes, classify=False)
+        self.side_image = ResNet(num_classes=self.num_classes, classify=False)
+        self.image_output_dim = 2048
         self.side_text = ShawnNet(self.embedding_dim,
                                   num_classes=self.num_classes,
                                   windows=[3, 4, 5],
@@ -145,9 +148,9 @@ class FusionSideNetFc(nn.Module):
 
         self.fc1fus = nn.Linear(
             self.side_text.num_filters * len(self.side_text.windows),
-            self.base.last_channel)
+            self.image_output_dim)
         self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                        nn.Linear(self.base.last_channel, side_fc),
+                                        nn.Linear(self.image_output_dim, side_fc),
                                         nn.Dropout(self.dropout_prob),
                                         nn.Linear(side_fc, self.num_classes))
 
@@ -210,11 +213,38 @@ class TextSideNet(nn.Module):
         return x, d
 
 
+class VGG(nn.Module):
+    def __init__(self, num_classes, classify=True):
+        super(VGG, self).__init__()
+        self.model = torchvision.models.vgg16(pretrained=True)
+        self.name = 'vgg'
+        self.classify = classify
+        if self.classify:
+            self.classifier = nn.Sequential(
+                nn.Linear(512 * 7 * 7, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, num_classes),
+            )
+
+    def forward(self, x):
+        x = self.model.features(x)
+        x = self.model.avgpool(x)
+        x = torch.flatten(x, 1)
+        if self.classify:
+            x = self.classifier(x)
+        return x
+
+
 class ResNet(nn.Module):
     def __init__(self, num_classes, classify=True):
         super(ResNet, self).__init__()
-        self.model = torchvision.models.resnet18(pretrained=True)
-        expansion = 1
+        self.model = torchvision.models.resnet50(pretrained=True)
+        self.name = 'resnet'
+        expansion = 4
         self.classify = classify
         if self.classify:
             self.classifier = nn.Linear(512 * expansion, num_classes)
@@ -242,18 +272,16 @@ class ResNet(nn.Module):
 class MobileNet(nn.Module):
     def __init__(self, num_classes, dropout_prob=.2, classify=True):
         super(MobileNet, self).__init__()
-        self.dropout_prob = dropout_prob
         self.model = torchvision.models.mobilenet_v2(pretrained=True)
-        self.features = self.model.features
-        self.last_channel = self.model.last_channel
+        self.name = 'mobilenet'
         self.classify = classify
         if self.classify:
-            self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                            nn.Linear(self.last_channel,
+            self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                            nn.Linear(self.model.last_channel,
                                                       num_classes))
 
     def forward(self, x):
-        x = self.features(x)
+        x = self.model.features(x)
         x = x.mean([2, 3])
         if self.classify:
             x = self.classifier(x)
@@ -266,6 +294,7 @@ class ShawnNet(nn.Module):
                  dropout_prob=.2, num_classes=10,
                  custom_embedding=False, custom_num_embeddings=0, classify=True):
         super(ShawnNet, self).__init__()
+        self.name = 'shawn'
         self.embedding_dim = embedding_dim
         self.num_filters = num_filters
         if windows is None:

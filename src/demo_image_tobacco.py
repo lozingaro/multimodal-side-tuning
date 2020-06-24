@@ -74,7 +74,7 @@ best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num
 
 result_file = '../test/results_tobacco.csv'
 with open(result_file, 'a+') as f:
-    f.write('mobilenetv2,'
+    f.write(f'{model.name},'
             f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
             'sgd,' 
             '-,' 
@@ -84,7 +84,7 @@ with open(result_file, 'a+') as f:
             f'{test_acc:.3f},' 
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-cm_file = '../test/confusion_matrices/mobilenetv2_tobacco.png'
+cm_file = f'../test/confusion_matrices/{model.name}_tobacco.png'
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')

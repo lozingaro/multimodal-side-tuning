@@ -18,6 +18,7 @@
 
 from __future__ import division, print_function
 
+import time
 import random
 from warnings import filterwarnings
 
@@ -58,7 +59,7 @@ train_targets = d_train.dataset.targets
 labels = d.classes
 
 num_classes = len(np.unique(train_targets))
-num_epochs = 200
+num_epochs = 100
 side_fc = 256
 alphas = [.3, .3, .4]
 
@@ -70,13 +71,16 @@ optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                               lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=device, num_classes=num_classes)
+since = time.time()
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
+time_elapsed = time.time() - since
 
 result_file = '../test/results_tobacco.csv'
 with open(result_file, 'a+') as f:
     f.write(f'1280x{side_fc}x10,'
-            f'sgd,'
+            f'{time_elapsed},'
             f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
+            f'sgd,'
             f'fasttext,'
             f'min,'
             f'{alphas},'
