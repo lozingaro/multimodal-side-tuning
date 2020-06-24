@@ -214,9 +214,10 @@ class ResNet(nn.Module):
     def __init__(self, num_classes, classify=True):
         super(ResNet, self).__init__()
         self.model = torchvision.models.resnet18(pretrained=True)
+        expansion = 1
         self.classify = classify
         if self.classify:
-            self.classifier = nn.Linear(512 * self.model.block.expansion, num_classes)
+            self.classifier = nn.Linear(512 * expansion, num_classes)
 
     def forward(self, x):
         x = self.model.conv1(x)
