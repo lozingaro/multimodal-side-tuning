@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets import TobaccoImgDataset
-from models.nets import MobileNet
+from models.nets import MobileNet, ResNet
 from models.utils import TrainingPipeline
 
 print("""
@@ -61,7 +61,8 @@ labels = d.classes
 num_classes = len(np.unique(train_targets))
 num_epochs = 200
 
-model = MobileNet(num_classes=num_classes, dropout_prob=.5).to(device)
+# model = MobileNet(num_classes=num_classes, dropout_prob=.5).to(device)
+model = ResNet(num_classes=num_classes).to(device)
 _, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).float().to(device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(device)

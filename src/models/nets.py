@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -53,7 +52,7 @@ class FusionNetConcat(nn.Module):
             128)
 
         self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                        nn.Linear(128*3, self.num_classes))
+                                        nn.Linear(128 * 3, self.num_classes))
 
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
@@ -209,6 +208,34 @@ class TextSideNet(nn.Module):
         x = self.classifier(x)
 
         return x, d
+
+
+class ResNet(nn.Module):
+    def __init__(self, num_classes, classify=True):
+        super(ResNet, self).__init__()
+        self.model = torchvision.models.resnet18(pretrained=True)
+        self.classify = classify
+        if self.classify:
+            self.classifier = nn.Linear(512 * self.model.block.expansion, num_classes)
+
+    def forward(self, x):
+        x = self.model.conv1(x)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
+
+        x = self.model.avgpool(x)
+        x = torch.flatten(x, 1)
+
+        if self.classify:
+            x = self.classifier(x)
+
+        return x
 
 
 class MobileNet(nn.Module):
