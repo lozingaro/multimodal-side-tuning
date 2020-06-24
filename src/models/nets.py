@@ -125,6 +125,7 @@ class FusionSideNetFc(nn.Module):
                  dropout_prob=.2, custom_embedding=False,
                  custom_num_embeddings=0, side_fc=512):
         super(FusionSideNetFc, self).__init__()
+        self.name = f'fusion_side_{side_fc}_net'
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
         if alphas is None:

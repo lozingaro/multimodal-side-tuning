@@ -59,7 +59,7 @@ train_targets = d_train.dataset.targets
 labels = d.classes
 
 num_classes = len(np.unique(train_targets))
-num_epochs = 200
+num_epochs = 100
 
 # model = MobileNet(num_classes=num_classes, dropout_prob=.5).to(device)
 model = ResNet(num_classes=num_classes).to(device)

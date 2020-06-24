@@ -71,7 +71,7 @@ class TrainingPipeline:
             pass
 
         self.model.load_state_dict(best_model)
-        torch.save(self.model, '/tmp/best_model.ptr')
+        torch.save(self.model, f'../test/models/best_{self.model.name}_model.ptr')
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
         if data_test is not None:
