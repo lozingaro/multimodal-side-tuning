@@ -21,16 +21,15 @@ from __future__ import division, print_function
 import random
 from warnings import filterwarnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-import conf
+import config
 from datasets.rvl_cdip import RvlDataset
-from datasets.tobacco import TobaccoDataset
 from models import TrainingPipeline, FusionSideNetFc
 
 print("""
@@ -48,42 +47,46 @@ cudnn.benchmark = False
 torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-num_classes = 16
-num_epochs = 10
-side_fc = 256
-result_file = '../test/results_rvl.csv'
-cm_file = f'../test/confusion_matrices/side_{side_fc}_rvl.png'
-
-d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
+d_train = RvlDataset(f'{config.rlv_img_root_dir}/train', f'{config.rlv_txt_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
+d_val = RvlDataset(f'{config.rlv_img_root_dir}/val', f'{config.rlv_txt_root_dir}/val')
 dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
+d_test = RvlDataset(f'{config.rlv_img_root_dir}/test', f'{config.rlv_txt_root_dir}/test')
 dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
 
-model = FusionSideNetFc(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=side_fc).to(conf.core.device)
+num_classes = len(np.unique(train_targets))
+num_epochs = 200
+side_fc = 256
+alphas = [.3, .3, .4]
+
+model = FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(conf.device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
+weight = torch.from_numpy(np.min(c) / c).float().to(device)
+criterion = nn.CrossEntropyLoss(weight=weight).to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
-pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+                                              lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
+pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=device, num_classes=num_classes)
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
+result_file = '../test/results_rvl.csv'
 with open(result_file, 'a+') as f:
     f.write(f'1280x{side_fc}x10,'
+            f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
             f'sgd,'
             f'fasttext,'
             f'min,'
-            f'3-3-4,'
+            f'{alphas},'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
+cm_file = f'../test/confusion_matrices/side_{side_fc}_rvl.png'
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')

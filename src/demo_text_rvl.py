@@ -28,7 +28,7 @@ import torch.nn as nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-import conf
+import config
 from datasets import RvlTxtDataset
 from models.nets import ShawnNet
 from models.utils import TrainingPipeline
@@ -50,25 +50,26 @@ np.random.seed(42)
 random.seed(42)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-d_train = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/train')
+d_train = RvlTxtDataset(f'{config.rlv_txt_root_dir}/train')
 dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-d_val = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/val')
+d_val = RvlTxtDataset(f'{config.rlv_txt_root_dir}/val')
 dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-d_test = RvlTxtDataset(f'{conf.rlv_txt_root_dir}/test')
+d_test = RvlTxtDataset(f'{config.rlv_txt_root_dir}/test')
 dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
 
 num_classes = len(np.unique(train_targets))
-num_epochs = 10
+num_epochs = 15
 
 model = ShawnNet(300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(device)
 _, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(conf.device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
+weight = torch.from_numpy(np.min(c) / c).float().to(device)
+criterion = nn.CrossEntropyLoss(weight=weight).to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
-pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+                                              lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
+pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=device, num_classes=num_classes)
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
 result_file = '../test/results_rvl.csv'

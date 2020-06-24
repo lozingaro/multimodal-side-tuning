@@ -28,7 +28,7 @@ import torch.nn as nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-import conf
+import config
 from datasets import TobaccoTxtDataset
 from models.nets import ShawnNet
 from models.utils import TrainingPipeline
@@ -50,7 +50,7 @@ np.random.seed(42)
 random.seed(42)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-d = TobaccoTxtDataset(conf.tobacco_txt_root_dir)
+d = TobaccoTxtDataset(config.tobacco_txt_root_dir)
 d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
 dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
 dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
@@ -59,15 +59,16 @@ train_targets = d_train.dataset.targets
 labels = d.classes
 
 num_classes = len(np.unique(train_targets))
-num_epochs = 100
+num_epochs = 200
 
 model = ShawnNet(300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(device)
 _, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(conf.device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
+weight = torch.from_numpy(np.min(c) / c).float().to(device)
+criterion = nn.CrossEntropyLoss(weight=weight).to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
-pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+                                              lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
+pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=device, num_classes=num_classes)
 best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
 result_file = '../test/results_tobacco.csv'
