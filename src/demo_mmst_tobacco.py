@@ -60,10 +60,10 @@ labels = d.classes
 
 num_classes = len(np.unique(train_targets))
 num_epochs = 150
-side_fc = 256
+side_fc = 1024
 alphas = [.3, .3, .4]
 
-model = FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5).to(device)
+model = FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
 _, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).float().to(device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(device)
@@ -83,12 +83,12 @@ with open(result_file, 'a+') as f:
             f'sgd,'
             f'fasttext,'
             f'min,'
-            f'{alphas},'
+            f'{"-".join([str(i) for i in alphas])},'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-cm_file = f'../test/confusion_matrices/{model.name}_tobacco.png'
+cm_file = f'../test/confusion_matrices/{model.name}_tobacco_{"-".join([str(i) for i in alphas])}.png'
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')
