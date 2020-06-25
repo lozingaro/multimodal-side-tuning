@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import itertools
 import time
 
@@ -71,7 +70,13 @@ class TrainingPipeline:
             pass
 
         self.model.load_state_dict(best_model)
-        torch.save(self.model, f'../../test/models/best_{self.model.name}_model.ptr')
+        try:
+            now = time.time()
+            torch.save(self.model.state_dict(),
+                       f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/'
+                       f'test/models/best_{self.model.name}_model_{now}.ptr')
+        except FileNotFoundError:
+            pass
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
         if data_test is not None:
