@@ -20,23 +20,11 @@
 from __future__ import division, print_function
 
 import os
-import random
-from warnings import filterwarnings
 
-import numpy as np
-import torch
-import torchvision.transforms.functional as tf
 from PIL import Image
-from torch.backends import cudnn
+import torch
 from torch.utils.data import DataLoader
-
-filterwarnings("ignore")
-cudnn.deterministic = True
-cudnn.benchmark = False
-
-torch.manual_seed(42)
-np.random.seed(42)
-random.seed(42)
+import torchvision.transforms.functional as F
 
 
 class TobaccoDataset(torch.utils.data.Dataset):
@@ -51,9 +39,10 @@ class TobaccoDataset(torch.utils.data.Dataset):
             img_class_path = f'{img_root_dir}/{label}'
             self.classes += [label]
             for txt_path in os.scandir(txt_class_path):
-                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
                 self.targets += [i]
-                img = tf.to_tensor(Image.open(img_path))
+                img = Image.open(f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg')
+                img = F.to_tensor(img)
+                img = F.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                 self.imgs += [img]
                 txt = torch.load(txt_path.path).float()
                 self.txts += [txt]
@@ -78,8 +67,8 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
                 for img_path in it:
                     self.targets += [i]
                     img = Image.open(img_path.path)
-                    img = tf.to_tensor(img)
-                    img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                    img = F.to_tensor(img)
+                    img = F.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                     self.imgs += [img]
 
     def __getitem__(self, item):
