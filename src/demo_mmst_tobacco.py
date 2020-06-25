@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFc
+from models import TrainingPipeline, FusionSideNetFc, FusionSideNetDirect
 
 print("""
     Multimodal side-tuning for document classification
@@ -59,11 +59,11 @@ train_targets = d_train.dataset.targets
 labels = d.classes
 
 num_classes = len(np.unique(train_targets))
-num_epochs = 100
+num_epochs = 150
 side_fc = 256
 alphas = [.3, .3, .4]
 
-model = FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
+model = FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5).to(device)
 _, c = np.unique(np.array(train_targets), return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).float().to(device)
 criterion = nn.CrossEntropyLoss(weight=weight).to(device)
@@ -77,7 +77,7 @@ time_elapsed = time.time() - since
 
 result_file = '../test/results_tobacco.csv'
 with open(result_file, 'a+') as f:
-    f.write(f'1280x{side_fc}x10,'
+    f.write(f'{model.name},'
             f'{time_elapsed},'
             f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
             f'sgd,'
@@ -88,7 +88,7 @@ with open(result_file, 'a+') as f:
             f'{test_acc:.3f},'
             f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-cm_file = f'../test/confusion_matrices/side_{side_fc}_tobacco.png'
+cm_file = f'../test/confusion_matrices/{model.name}_tobacco.png'
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
 plt.ylabel('Actual Category')
