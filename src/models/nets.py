@@ -79,33 +79,30 @@ class FusionSideNetDirect(nn.Module):
                  dropout_prob=.5, custom_embedding=False,
                  custom_num_embeddings=0):
         super(FusionSideNetDirect, self).__init__()
-        self.name = 'fusion-resnet-direct'
-        self.embedding_dim = embedding_dim
-        self.num_classes = num_classes
+        self.name = 'fusion-mobilenetv2-direct'
         if alphas is None:
             alphas = [.3, .3]
         self.alphas = alphas
-        self.dropout_prob = dropout_prob
 
-        self.base = ResNet(num_classes=self.num_classes, classify=False)
+        self.base = MobileNet(num_classes=num_classes, classify=False)
         # lock the updates
         for param in self.base.parameters():
             param.requires_grad_(False)
 
-        self.side_image = ResNet(num_classes=self.num_classes, classify=False)
-        self.image_output_dim = 2048
-        self.side_text = ShawnNet(self.embedding_dim,
+        self.side_image = MobileNet(num_classes=num_classes, classify=False)
+        self.image_output_dim = 1280
+        self.side_text = ShawnNet(embedding_dim,
                                   num_filters=512,
-                                  num_classes=self.num_classes,
-                                  windows=[2, 3, 4, 5],
+                                  num_classes=num_classes,
+                                  windows=[3, 4, 5],
                                   custom_embedding=custom_embedding,
                                   custom_num_embeddings=custom_num_embeddings,
                                   classify=False)
 
+        self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.image_output_dim)
         self.classifier = nn.Sequential(
-            nn.ReLU(),
-            nn.Dropout(self.dropout_prob),
-            nn.Linear(self.image_output_dim, self.num_classes))
+            nn.Dropout(dropout_prob),
+            nn.Linear(self.image_output_dim, num_classes))
 
     def forward(self, y):
         b_x, s_text_x = y
@@ -116,6 +113,7 @@ class FusionSideNetDirect(nn.Module):
         b_x = self.base(b_x)
 
         s_text_x = self.side_text(s_text_x)
+        s_text_x = self.fc1fus(s_text_x)
 
         x, d = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=True)
         x = self.classifier(x)
@@ -125,42 +123,35 @@ class FusionSideNetDirect(nn.Module):
 
 class FusionSideNetFc(nn.Module):
     def __init__(self, embedding_dim, num_classes, alphas=None,
-                 dropout_prob=.2, custom_embedding=False,
+                 dropout_prob=.5, custom_embedding=False,
                  custom_num_embeddings=0, side_fc=512):
         super(FusionSideNetFc, self).__init__()
-        self.name = f'fusion-resnet-{side_fc}'
-        self.embedding_dim = embedding_dim
-        self.num_classes = num_classes
+        self.name = f'fusion-mobilenetv2-{side_fc}'
         if alphas is None:
             alphas = [.3, .3]
         self.alphas = alphas
-        self.dropout_prob = dropout_prob
 
-        # self.base = MobileNet(num_classes=self.num_classes, classify=False)
-        self.base = ResNet(num_classes=self.num_classes, classify=False)
+        self.base = MobileNet(num_classes=num_classes, classify=False)
         for param in self.base.parameters():
             param.requires_grad_(False)
-        # self.side_image = MobileNet(num_classes=self.num_classes, classify=False)
-        self.side_image = ResNet(num_classes=self.num_classes, classify=False)
-        self.image_output_dim = 2048
-        self.side_text = ShawnNet(self.embedding_dim,
+        self.side_image = MobileNet(num_classes=num_classes, classify=False)
+        self.image_output_dim = 1280
+        self.side_text = ShawnNet(embedding_dim,
                                   num_filters=512,
-                                  num_classes=self.num_classes,
+                                  num_classes=num_classes,
                                   windows=[3, 4, 5],
                                   custom_embedding=custom_embedding,
                                   custom_num_embeddings=custom_num_embeddings,
                                   classify=False)
 
-        self.fc1fus = nn.Linear(
-            self.side_text.num_filters * len(self.side_text.windows),
-            self.image_output_dim)
-        self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
+        self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.image_output_dim)
+        self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
                                         nn.Linear(self.image_output_dim, side_fc),
-                                        nn.Dropout(self.dropout_prob),
-                                        nn.Linear(side_fc, self.num_classes))
+                                        nn.Dropout(dropout_prob),
+                                        nn.Linear(side_fc, num_classes))
 
     def forward(self, y):
-        b_x, s_text_x = y[0], y[1]
+        b_x, s_text_x = y
 
         s_image_x = b_x.clone()
         s_image_x = self.side_image(s_image_x)
