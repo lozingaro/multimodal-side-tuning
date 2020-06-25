@@ -84,7 +84,7 @@ for alphas in config.alphas:
         result_file = '../test/results_tobacco.csv'
         with open(result_file, 'a+') as f:
             f.write(f'{model.name},'
-                    f'{time_elapsed},'
+                    f'{round(time_elapsed)},'
                     f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
                     f'sgd,'
                     f'fasttext,'
