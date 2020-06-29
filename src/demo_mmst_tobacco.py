@@ -31,7 +31,8 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFcMobileNet, FusionSideNetDirect
+from models import TrainingPipeline, FusionSideNetFcMobileNet, FusionSideNetDirect, FusionSideNetFcResNet, \
+    FusionSideNetFcVGG
 
 print("""
     Multimodal side-tuning for document classification
@@ -64,9 +65,11 @@ criterion = nn.CrossEntropyLoss().to(device)
 
 for alphas in config.alphas:
     for model in (
-            FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
-            FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
-            FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5)
+        # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
+        # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
+        # FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5),
+        FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
+        FusionSideNetFcVGG(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
     ):
         model = model.to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
