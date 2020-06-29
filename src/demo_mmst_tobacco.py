@@ -60,10 +60,7 @@ train_targets = d_train.dataset.targets
 labels = d.classes
 num_classes = len(np.unique(train_targets))
 num_epochs = 100
-
-_, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(device)
+criterion = nn.CrossEntropyLoss().to(device)
 
 for alphas in config.alphas:
     for model in (

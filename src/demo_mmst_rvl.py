@@ -64,10 +64,7 @@ side_fc = 256
 alphas = [.3, .3, .4]
 
 model = FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
-print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-_, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(device)
+criterion = nn.CrossEntropyLoss().to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                               lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)

@@ -63,9 +63,7 @@ num_classes = len(np.unique(train_targets))
 num_epochs = 15
 
 model = ShawnNet(300, num_filters=512, windows=[3, 4, 5], num_classes=num_classes, dropout_prob=.5).to(device)
-_, c = np.unique(np.array(train_targets), return_counts=True)
-weight = torch.from_numpy(np.min(c) / c).float().to(device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(device)
+criterion = nn.CrossEntropyLoss().to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                               lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)

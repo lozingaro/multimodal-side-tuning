@@ -74,7 +74,7 @@ class TrainingPipeline:
             now = time.time()
             torch.save(self.model.state_dict(),
                        f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/'
-                       f'test/models/best_{self.model.name}_model_{now}.ptr')
+                       f'test/models/best_{self.model.name}_model_{round(now)}.ptr')
         except FileNotFoundError:
             pass
 
