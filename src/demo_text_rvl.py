@@ -76,7 +76,7 @@ with open(result_file, 'a+') as f:
             f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
             'sgd,'
             'fasttext,'
-            'min,'
+            'no,'
             '-,'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'

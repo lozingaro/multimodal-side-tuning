@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.rvl_cdip import RvlDataset
-from models import TrainingPipeline, FusionSideNetFc
+from models import TrainingPipeline, FusionSideNetFcMobileNet
 
 print("""
     Multimodal side-tuning for document classification
@@ -63,7 +63,7 @@ num_epochs = 200
 side_fc = 256
 alphas = [.3, .3, .4]
 
-model = FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
+model = FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=side_fc).to(device)
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
@@ -77,7 +77,7 @@ with open(result_file, 'a+') as f:
             f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
             f'sgd,'
             f'fasttext,'
-            f'min,'
+            f'no,'
             f'{alphas},'
             f'{best_valid_acc:.3f},'
             f'{test_acc:.3f},'

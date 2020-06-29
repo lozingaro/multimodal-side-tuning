@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFc, FusionSideNetDirect
+from models import TrainingPipeline, FusionSideNetFcMobileNet, FusionSideNetDirect
 
 print("""
     Multimodal side-tuning for document classification
@@ -64,8 +64,8 @@ criterion = nn.CrossEntropyLoss().to(device)
 
 for alphas in config.alphas:
     for model in (
-            FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
-            FusionSideNetFc(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
+            FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
+            FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
             FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5)
     ):
         model = model.to(device)
@@ -85,7 +85,7 @@ for alphas in config.alphas:
                     f'{sum(p.numel() for p in model.parameters() if p.requires_grad)},'
                     f'sgd,'
                     f'fasttext,'
-                    f'min,'
+                    f'no,'
                     f'{"-".join([str(i) for i in alphas])},'
                     f'{best_valid_acc:.3f},'
                     f'{test_acc:.3f},'
