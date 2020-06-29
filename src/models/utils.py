@@ -71,10 +71,13 @@ class TrainingPipeline:
 
         self.model.load_state_dict(best_model)
         try:
-            now = time.time()
+            if self.model.alphas is not None:
+                postfix = {"-".join([str(i) for i in self.model.alphas])}
+            else:
+                postfix = round(time.time())
             torch.save(self.model.state_dict(),
                        f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/'
-                       f'test/models/best_{self.model.name}_model_{round(now)}.ptr')
+                       f'test/models/best_{self.model.name}_model_{postfix}.ptr')
         except FileNotFoundError:
             pass
 
