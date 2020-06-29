@@ -54,9 +54,9 @@ random.seed(42)
 
 d = TobaccoDataset(config.tobacco_img_root_dir, config.tobacco_txt_root_dir)
 d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
-dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
-dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
-dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
+dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
+dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 train_targets = d_train.dataset.targets
 labels = d.classes
 num_classes = len(np.unique(train_targets))
