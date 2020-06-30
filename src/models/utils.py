@@ -66,7 +66,7 @@ class TrainingPipeline:
                 if data_eval is not None:
                     valid_loss, valid_acc, _ = self._eval(data_eval)
 
-                    if valid_acc >= best_valid_acc:
+                    if valid_acc >= best_valid_acc and epoch > num_epochs * .75:
                         best_valid_acc = valid_acc
                         best_model = copy.deepcopy(self.model.state_dict())
 
