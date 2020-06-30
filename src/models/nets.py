@@ -26,7 +26,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-import torchvision.transforms.functional as F
 from torch.backends import cudnn
 
 from .utils import merge
