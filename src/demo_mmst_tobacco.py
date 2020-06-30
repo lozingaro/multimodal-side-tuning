@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFcMobileNet, plot_cm
+from models import TrainingPipeline, FusionSideNetFcMobileNet
 
 print("""
     Multimodal side-tuning for document classification
@@ -98,6 +98,6 @@ for alphas in config.alphas[4:5]:
                     f'{test_acc:.3f},'
                     f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-        plot_cm(cm,
-                labels,
-                f'../test/confusion_matrices/{model.name}_tobacco_{"-".join([str(i) for i in alphas])}.png')
+        # plot_cm(cm,
+        #         labels,
+        #         f'../test/confusion_matrices/{model.name}_tobacco_{"-".join([str(i) for i in alphas])}.png')

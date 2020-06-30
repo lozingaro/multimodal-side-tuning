@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets import RvlDataset
-from models import TrainingPipeline, FusionSideNetFcMobileNet, plot_cm
+from models import TrainingPipeline, FusionSideNetFcMobileNet
 
 print("""
     Multimodal side-tuning for document classification

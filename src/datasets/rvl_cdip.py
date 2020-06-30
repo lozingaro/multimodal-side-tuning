@@ -25,7 +25,7 @@ from warnings import filterwarnings
 
 import numpy as np
 import torch
-import torchvision.transforms.functional as tf
+import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
@@ -57,7 +57,7 @@ class RvlDataset(torch.utils.data.Dataset):
                 self.txts += [txt_path.path]
 
     def __getitem__(self, item):
-        img = tf.to_tensor(Image.open(self.imgs[item]))
+        img = TF.to_tensor(Image.open(self.imgs[item]))
         txt = torch.load(self.txts[item]).float()
         return (img, txt), self.targets[item]
 
@@ -81,8 +81,8 @@ class RvlImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         img = Image.open(self.imgs[item])
-        img = tf.to_tensor(img)
-        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        img = TF.to_tensor(img)
+        img = TF.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         return img, self.targets[item]
 
     def __len__(self):
