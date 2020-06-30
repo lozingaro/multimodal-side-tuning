@@ -16,13 +16,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import itertools
-import time
+from __future__ import division, print_function
 
 import copy
+import itertools
+import random
+import time
+from warnings import filterwarnings
+
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
+from torch.backends import cudnn
 from tqdm import tqdm
+
+filterwarnings("ignore")
+cudnn.deterministic = True
+cudnn.benchmark = False
+
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
 
 
 class TrainingPipeline:
@@ -177,3 +191,16 @@ def merge(variables, weights, return_distance=False):
         return res, d
     else:
         return res
+
+
+def plot_cm(cm, labels, cm_file):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
+    plt.ylabel('Actual Category')
+    plt.yticks(range(len(cm)), labels, rotation=45)
+    plt.xlabel('Predicted Category')
+    plt.xticks(range(len(cm)), labels, rotation=45)
+    [ax.text(j, i, round(cm[i][j] / np.sum(cm[i]), 2), ha="center", va="center") for i in range(len(cm)) for j in
+     range(len(cm[i]))]
+    fig.tight_layout()
+    plt.savefig(cm_file)

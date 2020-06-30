@@ -16,12 +16,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import division, print_function
+
+import random
+from warnings import filterwarnings
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+import torchvision.transforms.functional as F
+from torch.backends import cudnn
 
 from .utils import merge
+
+filterwarnings("ignore")
+cudnn.deterministic = True
+cudnn.benchmark = False
+
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
 
 
 class FusionNetConcat(nn.Module):

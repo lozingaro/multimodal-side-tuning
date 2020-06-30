@@ -22,7 +22,6 @@ import random
 import time
 from warnings import filterwarnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,8 +30,7 @@ from torch.utils.data import DataLoader
 
 import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFcMobileNet, FusionSideNetDirect, FusionSideNetFcResNet, \
-    FusionSideNetFcVGG
+from models import TrainingPipeline, FusionSideNetFcMobileNet, plot_cm
 
 print("""
     Multimodal side-tuning for document classification
@@ -46,18 +44,20 @@ print("""
 filterwarnings("ignore")
 cudnn.deterministic = True
 cudnn.benchmark = False
+
 torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 d = TobaccoDataset(config.tobacco_img_root_dir, config.tobacco_txt_root_dir)
-num_classes = len(d.classes)
 d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
 dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
 dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
 dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 
+num_classes = len(d.classes)
 train_targets = d_train.dataset.targets
 labels = d.classes
 num_epochs = 100
@@ -98,14 +98,6 @@ for alphas in config.alphas[4:5]:
                     f'{test_acc:.3f},'
                     f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n')
 
-        # cm_file = f'../test/confusion_matrices/{model.name}_tobacco_{"-".join([str(i) for i in alphas])}.png'
-        # fig, ax = plt.subplots(figsize=(8, 6))
-        # ax.imshow(cm, aspect='auto', cmap=plt.get_cmap('Reds'))
-        # plt.ylabel('Actual Category')
-        # plt.yticks(range(len(cm)), labels, rotation=45)
-        # plt.xlabel('Predicted Category')
-        # plt.xticks(range(len(cm)), labels, rotation=45)
-        # [ax.text(j, i, round(cm[i][j] / np.sum(cm[i]), 2), ha="center", va="center") for i in range(len(cm)) for j in
-        #  range(len(cm[i]))]
-        # fig.tight_layout()
-        # plt.savefig(cm_file)
+        plot_cm(cm,
+                labels,
+                f'../test/confusion_matrices/{model.name}_tobacco_{"-".join([str(i) for i in alphas])}.png')
