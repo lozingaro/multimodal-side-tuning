@@ -54,12 +54,12 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 d = TobaccoDataset(config.tobacco_img_root_dir, config.tobacco_txt_root_dir)
 num_classes = len(d.classes)
 
-for alphas in config.alphas:
+for alphas in config.alphas[4:5]:
     for model in (
-        # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
+        FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
         # FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5),
-        FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
+        # FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcVGG(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
     ):
         torch.manual_seed(42)
