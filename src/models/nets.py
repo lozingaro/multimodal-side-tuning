@@ -128,7 +128,7 @@ class FusionSideNetFcMobileNet(nn.Module):
         super(FusionSideNetFcMobileNet, self).__init__()
         self.name = f'fusion-mobilenetv2-{side_fc}'
         if alphas is None:
-            alphas = [.3, .3]
+            alphas = [.3, .3, .4]
         self.alphas = alphas
 
         self.base = MobileNet(num_classes=num_classes, classify=False)

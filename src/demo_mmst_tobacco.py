@@ -53,6 +53,14 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 d = TobaccoDataset(config.tobacco_img_root_dir, config.tobacco_txt_root_dir)
 num_classes = len(d.classes)
+d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
+dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
+dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
+
+train_targets = d_train.dataset.targets
+labels = d.classes
+num_epochs = 100
 
 for alphas in config.alphas[4:5]:
     for model in (
@@ -62,19 +70,6 @@ for alphas in config.alphas[4:5]:
         # FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcVGG(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
     ):
-        torch.manual_seed(42)
-        np.random.seed(42)
-        random.seed(42)
-
-        d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
-        dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-        dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-        dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
-
-        train_targets = d_train.dataset.targets
-        labels = d.classes
-        num_epochs = 100
-
         model = model.to(device)
         learning_rate = .1
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=.9)

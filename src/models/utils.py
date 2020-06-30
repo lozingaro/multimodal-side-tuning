@@ -164,7 +164,7 @@ class TrainingPipeline:
 
 
 def merge(variables, weights, return_distance=False):
-    coeffs = weights + [1 - sum([i for i in weights])]
+    coeffs = weights  # + [1 - sum([i for i in weights])]
     res = torch.zeros_like(variables[0], device=variables[0].device)
 
     for coeff, var in zip(coeffs, variables):
