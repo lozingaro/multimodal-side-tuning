@@ -24,7 +24,7 @@ from warnings import filterwarnings
 
 import numpy as np
 import torch
-import torchvision.transforms.functional as F
+import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
@@ -45,15 +45,18 @@ class TobaccoDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
-            self.classes += [txt_class_path.name]
-            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
+        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+            txt_class_path = f'{txt_root_dir}/{label}'
+            img_class_path = f'{img_root_dir}/{label}'
+            self.classes += [label]
+            for txt_path in os.scandir(txt_class_path):
+                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
                 self.targets += [i]
-                self.imgs += [img_path.path]
+                self.imgs += [img_path]
                 self.txts += [txt_path.path]
 
     def __getitem__(self, item):
-        img = F.to_tensor(Image.open(self.imgs[item]))
+        img = TF.to_tensor(Image.open(self.imgs[item]))
         txt = torch.load(self.txts[item]).float()
         return (img, txt), self.targets[item]
 
@@ -67,14 +70,16 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.imgs = []
-        for i, img_class_path in enumerate(os.scandir(img_root_dir)):
-            self.classes += [img_class_path.name]
-            for img_path in os.scandir(img_class_path):
-                self.targets += [i]
-                self.imgs += [img_path.path]
+        for i, label in enumerate(sorted(os.listdir(img_root_dir))):
+            img_class_path = f'{img_root_dir}/{label}'
+            self.classes += [label]
+            with os.scandir(img_class_path) as it:
+                for img_path in it:
+                    self.targets += [i]
+                    self.imgs += [img_path.path]
 
     def __getitem__(self, item):
-        img = F.to_tensor(Image.open(self.imgs[item]))
+        img = TF.to_tensor(Image.open(self.imgs[item]))
         return img, self.targets[item]
 
     def __len__(self):
@@ -87,15 +92,14 @@ class TobaccoTxtDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.txts = []
-        for i, txt_class_path in enumerate(os.scandir(txt_root_dir)):
-            self.classes += [txt_class_path.name]
-            for txt_path in os.scandir(txt_class_path):
-                self.targets += [i]
-                self.txts += [txt_path.path]
+        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+            txt_class_path = f'{txt_root_dir}/{label}'
+            self.classes += [label]
+            with os.scandir(txt_class_path) as it:
+                for txt_path in it:
+                    self.targets += [i]
+                    self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
         return txt, self.targets[item]
-
-    def __len__(self):
-        return len(self.targets)
