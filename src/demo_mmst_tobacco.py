@@ -63,6 +63,7 @@ labels = d.classes
 num_epochs = 100
 
 for alphas in config.alphas[4:5]:
+    print(alphas)
     for model in (
         FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
