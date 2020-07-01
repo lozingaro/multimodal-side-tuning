@@ -1,5 +1,7 @@
 data
 test/models
 .DS_Store
-.idea/
-__pycache__/
+.idea
+__pycache__
+venv
+env

@@ -1,5 +1,3 @@
-fasttext
-Pillow
 torchvision
 torch
 numpy
