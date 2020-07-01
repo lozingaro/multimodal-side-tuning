@@ -11,10 +11,27 @@ text_fasttext_model_path = '/home/stefanopio.zingaro/Developer/multimodal-side-t
 rvl_labels = ['Letter', 'Form', 'Email', 'Handwritten', 'Advertisement', 'Scientific report', 'Scientific publication', 'Specification', 'File folder', 'News article', 'Budget', 'Invoice', 'Presentation', 'Questionnaire', 'Resume', 'Memo']
 tobacco_labels = ['Advertisement', 'Email', 'Form', 'Letter', 'Memo', 'News', 'Note', 'Report', 'Resume', 'Scientific']
 
-tasks_classifier = ['1280x512x10', '1280x1024x10']  # ['direct', '1280x128x10',
-# '1280x256x10', '1280x512x10', '1280x1024x10', 'concat', ]
+tasks_classifier = [
+    # '1280x128x10',
+    # '1280x256x10',
+    # '1280x512x10',
+    '1280x1024x10'
+    # 'direct',
+    # 'concat'
+]
 tasks_optimizer = ['sgd']  # ['sgd', 'adam']
 tasks_embedding = ['fasttext']  # ['fasttext', 'custom']
-tasks_loss_weigth = ['min']
-tasks_coeffs = ['2-4-4', '2-3-5']  # ['4-3-3', '5-3-2', '4-4-2', '3-3-4']
+tasks_loss_weigth = [
+    'no',
+    # 'min',
+    # 'max'
+]
+tasks_coeffs = [
+    # '2-4-4',
+    # '2-3-5'
+    # '4-3-3',
+    # '5-3-2',
+    # '4-4-2',
+    '3-3-4'
+]
 tasks = itertools.product(tasks_classifier, tasks_optimizer, tasks_embedding, tasks_loss_weigth, tasks_coeffs)
