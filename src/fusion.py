@@ -93,5 +93,5 @@ for task in conf.tasks:
         f'{best_valid_acc:.3f},' \
         f'{test_acc:.3f},' \
         f'{",".join([f"{r[i] / np.sum(r):.3f}" for i,r in enumerate(confusion_matrix)])}\n'
-    with open('../test/results.csv', 'a+') as f:
+    with open('../test/results_tobacco.csv', 'a+') as f:
         f.write(s)
