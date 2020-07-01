@@ -19,12 +19,12 @@
 
 from __future__ import division, print_function
 
-import fasttext
 import numpy as np
 import os
 import random
 import torch
 import torch.nn.functional as F
+from torchtext.vocab import FastText, GloVe
 from tqdm import tqdm
 from PIL import Image, UnidentifiedImageError
 from torch.backends import cudnn
@@ -39,10 +39,7 @@ np.random.seed(42)
 random.seed(42)
 
 
-def load_txt_samples(txt_data_dir):
-    nlp = fasttext.load_model('/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/cc.en.300.bin')
-    orig_dir = f'/data01/stefanopio.zingaro/datasets/{txt_data_dir}'
-    save_dir = f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/{txt_data_dir}'
+def load_txt_samples(orig_dir, dest_dir, nlp):
     for label in sorted(os.listdir(orig_dir)):
         class_path = f'{orig_dir}/{label}'
         with os.scandir(class_path) as it:
@@ -60,14 +57,12 @@ def load_txt_samples(txt_data_dir):
                 else:
                     x = torch.tensor(word2vec[:500])
 
-                if not os.path.exists(f'{save_dir}/{label}'):
-                    os.mkdir(f'{save_dir}/{label}')
-                torch.save(x.half(), f'{save_dir}/{label}/{"".join(path.name.split(".")[:-1])}.ptr')
+                if not os.path.exists(f'{dest_dir}/{label}'):
+                    os.mkdir(f'{dest_dir}/{label}')
+                torch.save(x.half(), f'{dest_dir}/{label}/{"".join(path.name.split(".")[:-1])}.ptr')
 
 
-def load_img_samples(img_data_dir):
-    orig_dir = f'/data01/stefanopio.zingaro/datasets/{img_data_dir}'
-    save_dir = f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/{img_data_dir}'
+def load_img_samples(orig_dir, dest_dir):
     for label in sorted(os.listdir(orig_dir)):
         class_path = f'{orig_dir}/{label}'
         with os.scandir(class_path) as it:
@@ -77,16 +72,22 @@ def load_img_samples(img_data_dir):
                         img = Image.open(f)
                         img = img.convert('RGB')
                         img = img.resize((384, 384))
-                        if not os.path.exists(f'{save_dir}/{label}'):
-                            os.mkdir(f'{save_dir}/{label}')
-                        img.save(f'{save_dir}/{label}/{"".join(path.name.split(".")[:-1])}.jpg', "JPEG", quality=100)
+                        if not os.path.exists(f'{dest_dir}/{label}'):
+                            os.mkdir(f'{dest_dir}/{label}')
+                        img.save(f'{dest_dir}/{label}/{"".join(path.name.split(".")[:-1])}.jpg', "JPEG", quality=100)
                     except UnidentifiedImageError:
                         pass
 
 
 if __name__ == '__main__':
-    load_img_samples('Tobacco3482-jpg')
-    load_txt_samples('QS-OCR-small')
+    fasttext_model = FastText()
+    glove_model = GloVe()
+    load_img_samples('/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg',
+                     '../data/Tobacco3482-jpg')
+    load_txt_samples('/data01/stefanopio.zingaro/datasets/QS-OCR-small',
+                     '../data/QS-OCR-small', fasttext_model)
     for s in ['val', 'test', 'train']:
-        load_img_samples(f'RVL-CDIP/{s}')
-        load_txt_samples(f'QS-OCR-Large/{s}')
+        load_img_samples(f'/data01/stefanopio.zingaro/datasets/RVL-CDIP/{s}',
+                         f'../data/RVL-CDIP/{s}')
+        load_txt_samples(f'/data01/stefanopio.zingaro/datasets/QS-OCR-Large/{s}',
+                         f'../data/QS-OCR-Large/{s}', fasttext_model)

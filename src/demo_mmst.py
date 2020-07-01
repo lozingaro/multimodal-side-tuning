@@ -28,9 +28,10 @@ import torch.nn as nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-import config
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFcMobileNet, FusionSideNetFcResNet
+from datasets.rvl_cdip import RvlDataset
+from models.nets import FusionSideNetFcResNet, FusionSideNetFcMobileNet
+from models.utils import TrainingPipeline
 
 print("""
     Multimodal side-tuning for document classification
@@ -49,9 +50,35 @@ torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+alpha_configurations = [
+    [0.2, 0.3, 0.5],
+    [0.2, 0.4, 0.4],
+    [0.2, 0.5, 0.3],
+    [0.3, 0.2, 0.5],
+    [0.3, 0.3, 0.4],
+    [0.3, 0.4, 0.3],
+    [0.3, 0.5, 0.2],
+    [0.4, 0.2, 0.4],
+    [0.4, 0.3, 0.3],
+    [0.4, 0.4, 0.2],
+    [0.5, 0.2, 0.3],
+    [0.5, 0.3, 0.2]
+]
 
-d = TobaccoDataset(config.tobacco_img_root_dir, config.tobacco_txt_root_dir)
+# rlv_img_root_dir = '../data/RVL-CDIP'
+# rlv_txt_root_dir = '../data/QS-OCR-Large'
+# d_train = RvlDataset(f'{config.rlv_img_root_dir}/train', f'{config.rlv_txt_root_dir}/train')
+# dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
+# d_val = RvlDataset(f'{config.rlv_img_root_dir}/val', f'{config.rlv_txt_root_dir}/val')
+# dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
+# d_test = RvlDataset(f'{config.rlv_img_root_dir}/test', f'{config.rlv_txt_root_dir}/test')
+# dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
+#
+# num_classes = len(d_train.classes)
+# train_targets = d_train.targets
+# labels = d_train.classes
+
+d = TobaccoDataset('../data/Tobacco3482-jpg', '../data/QS-OCR-small')
 d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
 dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
 dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
@@ -60,10 +87,10 @@ dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 num_classes = len(d.classes)
 train_targets = d_train.dataset.targets
 labels = d.classes
+
 num_epochs = 100
 
-for alphas in config.alphas[4:5]:
-    print(alphas)
+for alphas in alpha_configurations[6:]:
     for model in (
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
@@ -71,18 +98,26 @@ for alphas in config.alphas[4:5]:
         FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcVGG(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
     ):
-        model = model.to(device)
         learning_rate = .1
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=.9)
-        criterion = nn.CrossEntropyLoss().to(device)
+        criterion = nn.CrossEntropyLoss()
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
-            lambda epoch: learning_rate * (1.0 - float(epoch) / num_epochs) ** .5
+            lr_lambda=lambda epoch: learning_rate * (1.0 - float(epoch) / num_epochs) ** .5
         )
-        pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=device, num_classes=num_classes)
+        pipeline = TrainingPipeline(model,
+                                    criterion,
+                                    optimizer,
+                                    scheduler,
+                                    num_classes=num_classes,
+                                    best_model_path=f'../test/models/best_{model.name}_model'
+                                                    f'_{"-".join([str(i) for i in alphas])}.ptr')
 
         since = time.time()
-        best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs,
+        best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train,
+                                                          dl_val,
+                                                          dl_test,
+                                                          num_epochs=num_epochs,
                                                           classes=labels)
         time_elapsed = time.time() - since
 

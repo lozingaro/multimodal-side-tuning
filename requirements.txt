@@ -1,3 +1,4 @@
+torchtext
 torchvision
 torch
 numpy

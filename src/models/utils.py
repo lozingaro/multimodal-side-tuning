@@ -38,18 +38,19 @@ torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 class TrainingPipeline:
 
-    def __init__(self, model, criterion, optimizer, scheduler=None,
-                 device='cuda', num_classes=10, debug=True):
-        self.model = model
+    def __init__(self, model, criterion, optimizer, scheduler=None, num_classes=10, debug=True, best_model_path=None):
+        self.model = model.to(device)
         self.optimizer = optimizer
-        self.criterion = criterion
+        self.criterion = criterion.to(device)
         self.scheduler = scheduler
-        self.device = device
         self.num_classes = num_classes
         self.debug = debug
+        self.best_model_path = best_model_path
 
     def run(self, data_train, data_eval=None, data_test=None, num_epochs=50, classes=None):
         best_model = copy.deepcopy(self.model.state_dict())
@@ -85,13 +86,7 @@ class TrainingPipeline:
 
         self.model.load_state_dict(best_model)
         try:
-            if self.model.alphas is not None:
-                postfix = {"-".join([str(i) for i in self.model.alphas])}
-            else:
-                postfix = round(time.time())
-            torch.save(self.model.state_dict(),
-                       f'/home/stefanopio.zingaro/Developer/multimodal-side-tuning/'
-                       f'test/models/best_{self.model.name}_model_{postfix}.ptr')
+            torch.save(self.model.state_dict(), self.best_model_path)
         except FileNotFoundError:
             pass
 
@@ -119,11 +114,11 @@ class TrainingPipeline:
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
                 for i in range(len(inputs)):
-                    inputs[i] = inputs[i].to(self.device)
+                    inputs[i] = inputs[i].to(device)
             else:
                 batch_size = inputs.size(0)
-                inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+                inputs = inputs.to(device)
+            labels = labels.to(device)
             result = self.model(inputs)
             if type(result) is tuple:
                 outputs = result[0]
@@ -135,7 +130,7 @@ class TrainingPipeline:
             loss.backward()
             self.optimizer.step()
             _, preds = torch.max(outputs, 1)
-            train_acc += torch.sum(preds == labels.data)
+            train_acc += (preds == labels).sum().item()
 
         if self.scheduler is not None:
             self.scheduler.step()
@@ -154,11 +149,11 @@ class TrainingPipeline:
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
                 for i in range(len(inputs)):
-                    inputs[i] = inputs[i].to(self.device)
+                    inputs[i] = inputs[i].to(device)
             else:
                 batch_size = inputs.size(0)
-                inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+                inputs = inputs.to(device)
+            labels = labels.to(device)
             with torch.no_grad():
                 result = self.model(inputs)
                 if type(result) is tuple:
@@ -178,11 +173,10 @@ class TrainingPipeline:
 
 
 def merge(variables, weights, return_distance=False):
-    coeffs = weights  # + [1 - sum([i for i in weights])]
     res = torch.zeros_like(variables[0], device=variables[0].device)
 
-    for coeff, var in zip(coeffs, variables):
-        res += coeff * var
+    for weight, var in zip(weights, variables):
+        res += weight * var
 
     if return_distance:
         d = [torch.mean(torch.tensor(

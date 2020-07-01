@@ -46,15 +46,15 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+        for i, label in enumerate(sorted(os.listdir(img_root_dir))):
             txt_class_path = f'{txt_root_dir}/{label}'
             img_class_path = f'{img_root_dir}/{label}'
             self.classes += [label]
-            for txt_path in os.scandir(txt_class_path):
-                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
+            for img_path in os.scandir(img_class_path):
+                txt_path = f'{txt_class_path}/{".".join(img_path.name.split(".")[:-1])}.ptr'
                 self.targets += [i]
-                self.imgs += [img_path]
-                self.txts += [txt_path.path]
+                self.imgs += [img_path.path]
+                self.txts += [txt_path]
 
     def __getitem__(self, item):
         img = TF.to_tensor(Image.open(self.imgs[item]))
@@ -74,10 +74,9 @@ class RvlImgDataset(torch.utils.data.Dataset):
         for i, label in enumerate(sorted(os.listdir(img_root_dir))):
             img_class_path = f'{img_root_dir}/{label}'
             self.classes += [label]
-            with os.scandir(img_class_path) as it:
-                for img_path in it:
-                    self.targets += [i]
-                    self.imgs += [img_path.path]
+            for img_path in os.scandir(img_class_path):
+                self.targets += [i]
+                self.imgs += [img_path.path]
 
     def __getitem__(self, item):
         img = TF.to_tensor(Image.open(self.imgs[item]))
@@ -96,14 +95,11 @@ class RvlTxtDataset(torch.utils.data.Dataset):
         for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
             txt_class_path = f'{txt_root_dir}/{label}'
             self.classes += [label]
-            with os.scandir(txt_class_path) as it:
-                for txt_path in it:
-                    self.targets += [i]
-                    self.txts += [txt_path.path]
+            for txt_path in os.scandir(txt_class_path):
+                self.targets += [i]
+                self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
         return txt, self.targets[item]
 
-    def __len__(self):
-        return len(self.targets)
