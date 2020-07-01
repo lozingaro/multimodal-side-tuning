@@ -27,14 +27,13 @@ class TobaccoDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        with zip(os.scandir(txt_root_dir), os.scandir(img_root_dir)) as it:
-            for i, (txt_class_path, img_class_path) in enumerate(it):
-                self.classes += [img_class_path.name]
-                with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as jt:
-                    for txt_path, img_path in jt:
-                        self.targets += [i]
-                        self.imgs += [img_path.path]
-                        self.txts += [txt_path.path]
+        for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
+            self.classes += [img_class_path.name]
+            with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as jt:
+                for txt_path, img_path in jt:
+                    self.targets += [i]
+                    self.imgs += [img_path.path]
+                    self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         img = tf.to_tensor(Image.open(self.imgs[item]))
