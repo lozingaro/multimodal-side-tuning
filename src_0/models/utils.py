@@ -2,22 +2,25 @@ import copy
 import itertools
 import time
 
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from torch.utils.data import Subset
+from tqdm import tqdm
 
 
 class TrainingPipeline:
 
     def __init__(self, model, criterion, optimizer, scheduler=None,
-                 device='cuda'):
+                 device='cuda', num_classes=10):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
         self.device = device
+        self.num_classes = num_classes
 
-    def run(self, data_train, data_eval=None, data_test=None,
+    def run(self, dataloader_train, dataloader_eval=None, dataloader_test=None,
             num_epochs=50):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
@@ -26,14 +29,14 @@ class TrainingPipeline:
         try:
             for epoch in range(num_epochs):
                 start_time = time.time()
-                train_loss, train_acc, epoch_distances = self._train(data_train)
+                train_loss, train_acc, epoch_distances = self._train(dataloader_train)
                 train_distances += epoch_distances
 
                 valid_loss, valid_acc = .0, .0
-                if data_eval is not None:
-                    valid_loss, valid_acc, _ = self._eval(data_eval)
+                if dataloader_eval is not None:
+                    valid_loss, valid_acc, _ = self._eval(dataloader_eval)
 
-                    if valid_acc >= best_valid_acc:
+                    if valid_acc >= best_valid_acc and epoch >= num_epochs * .5:
                         best_valid_acc = valid_acc
                         best_model = copy.deepcopy(self.model.state_dict())
 
@@ -41,11 +44,10 @@ class TrainingPipeline:
                 mins = secs / 60
                 secs %= 60
 
-                # print('Epoch: %d' % (epoch + 1), " | time in %d minutes,
-                # %d seconds" % (mins, secs)) print(f'\tLoss: {
-                # train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
-                # if data_eval is not None: print(f'\tLoss: {valid_loss:.4f}(
-                # valid)\t|\tAcc: {valid_acc:.3f} (valid)')
+                print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
+                print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
+                if dataloader_eval is not None:
+                    print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc:.3f} (valid)')
 
         except KeyboardInterrupt:
             pass
@@ -53,35 +55,20 @@ class TrainingPipeline:
         self.model.load_state_dict(best_model)
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
-        if data_test is not None:
-            # print('Checking the results of test dataset...')
-            test_loss, test_acc, confusion_matrix = self._eval(data_test)
-            # print(f'\tBest Acc: {best_valid_acc:.3f} (valid)') print(
-            # f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (
-            # test)\n') print(f'\n{"Category":10s} - Accuracy')
-            # for i,r in enumerate(confusion_matrix):
-            # print(f'{data_test.dataset.dataset.classes[i]:10s} -
-            # {r[i] / np.sum(r):.3f}')
+        if dataloader_test is not None:
+            print('Checking the results of test dataset...')
+            test_loss, test_acc, confusion_matrix = self._eval(dataloader_test)
+            print(f'\tBest Acc: {best_valid_acc:.3f} (valid)')
+            print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
+            print(f'\n{"Category":10s} - Accuracy')
+            for i, r in enumerate(confusion_matrix):
+                if type(dataloader_test.dataset) is Subset:
+                    print(f'{dataloader_test.dataset.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
+                else:
+                    print(f'{dataloader_test.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
 
-        #     fig, ax = plt.subplots(figsize=(8, 6))
-        #     ax.matshow(confusion_matrix,
-        #                aspect='auto',
-        #                vmin=0,
-        #                vmax=np.max(confusion_matrix),
-        #                cmap=plt.get_cmap('Reds'))
-        #     plt.ylabel('Actual Category')
-        #     plt.yticks(range(10), data_test.dataset.dataset.classes)
-        #     plt.xlabel('Predicted Category')
-        #     plt.xticks(range(10), data_test.dataset.dataset.classes)
-        #     for i in range(len(data_test.dataset.dataset.classes)):
-        #         for j in range(len(data_test.dataset.dataset.classes)):
-        #             ax.text(j, i, confusion_matrix[i, j], ha="center",
-        #                     va="center")
-        #     fig.tight_layout()
-        #     plt.show()
-        #
-        # plt.plot(train_distances)
-        # plt.show()
+        plt.plot(train_distances)
+        plt.show()
         return best_valid_acc, test_acc, confusion_matrix
 
     def _train(self, data):
@@ -91,7 +78,7 @@ class TrainingPipeline:
         train_acc = 0.0
         distances = []
 
-        for inputs, labels in data:
+        for _, (inputs, labels) in tqdm(enumerate(data)):
             self.optimizer.zero_grad()
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
@@ -125,9 +112,9 @@ class TrainingPipeline:
 
         eval_loss = 0.0
         eval_acc = 0
-        confusion_matrix = np.zeros([10, 10], int)
+        confusion_matrix = np.zeros([self.num_classes, self.num_classes], int)
 
-        for inputs, labels in data:
+        for _, (inputs, labels) in tqdm(enumerate(data)):
             if type(inputs) is list:
                 batch_size = inputs[0].size(0)
                 for i in range(len(inputs)):

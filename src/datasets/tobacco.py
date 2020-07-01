@@ -1,102 +1,132 @@
-from __future__ import division, print_function
-
+import io
 import os
-import random
-from warnings import filterwarnings
 
-import numpy as np
 import torch
-import torchvision.transforms.functional as tf
-from PIL import Image
-from torch.backends import cudnn
-from torch.utils.data import DataLoader
-
-filterwarnings("ignore")
-cudnn.deterministic = True
-cudnn.benchmark = False
-
-torch.manual_seed(42)
-np.random.seed(42)
-random.seed(42)
+import torch.nn.functional as F
+import torch.utils.data
+from torchvision import datasets, transforms
 
 
 class TobaccoDataset(torch.utils.data.Dataset):
-    def __init__(self, img_root_dir, txt_root_dir):
+    def __init__(self):
         super(TobaccoDataset, self).__init__()
-        self.classes = []
-        self.targets = []
-        self.imgs = []
-        self.txts = []
-        for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
-            self.classes += [img_class_path.name]
-            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
-                self.targets += [i]
-                self.imgs += [img_path.path]
-                self.txts += [txt_path.path]
+        if self.targets is None:
+            self.targets = []
+        if self.samples is None:
+            self.samples = []
 
-    def __getitem__(self, item):
-        img = tf.to_tensor(Image.open(self.imgs[item]))
-        txt = torch.load(self.txts[item]).float()
-        return (img, txt), self.targets[item]
+    def __getitem__(self, index):
+        return self.samples[index], self.targets[index]
 
     def __len__(self):
         return len(self.targets)
 
 
-class TobaccoImgDataset(torch.utils.data.Dataset):
-    def __init__(self, img_root_dir):
-        super(TobaccoImgDataset, self).__init__()
+class FusionDataset(TobaccoDataset):
+    def __init__(self, image_dataset, text_dataset):
+        self.image_dataset = image_dataset
+        self.text_dataset = text_dataset
+        self.classes = self.image_dataset.classes
+        self.samples = self._load_samples()
+        self.targets = self._load_targets()
+        super(FusionDataset, self).__init__()
+
+    def _load_samples(self):
+        samples = []
+        for image, text in zip(self.image_dataset, self.text_dataset):
+            samples.append((image[0], text[0]))
+        return samples
+
+    def _load_targets(self):
+        return self.image_dataset.targets
+
+
+class ImageDataset(TobaccoDataset):
+    def __init__(self, root, image_width, image_interpolation, image_mean_norm, image_std_norm):
+        self.full = datasets.ImageFolder(root)
+        self.image_width = image_width
+        self.image_interpolation = image_interpolation
+        self.image_mean_norm = image_mean_norm
+        self.image_std_norm = image_std_norm
+        self.classes = self.full.classes
+        self.samples = self._load_samples()
+        self.targets = self.full.targets
+        super(ImageDataset, self).__init__()
+
+    def _load_samples(self):
+        samples = []
+        t = transforms.Compose([
+            transforms.Resize((self.image_width, self.image_width), interpolation=self.image_interpolation),
+            transforms.ToTensor(),
+            transforms.Normalize(self.image_mean_norm, self.image_std_norm),
+        ])
+        for index in range(len(self.full.samples)):
+            path, target = self.full.samples[index]
+            sample = self.full.loader(path)
+            samples.append(t(sample))
+        return samples
+
+
+class TextDataset(TobaccoDataset):
+    def __init__(self, root, nlp, context=500):
+        self.root = root
+        self.nlp = nlp
+        self.context = context
+        self.targets = self._load_targets()
+        self.lookup = {}
+        if self.nlp is None:
+            self.samples = self._load_samples_custom_embedding()
+        else:
+            self.samples = self._load_samples()
+        super(TextDataset, self).__init__()
+
+    def _load_targets(self):
         self.classes = []
-        self.targets = []
-        self.imgs = []
-        with os.scandir(img_root_dir) as it:
-            for i, img_class_path in enumerate(it):
-                self.classes += [img_class_path.name]
-                with os.scandir(img_class_path) as jt:
-                    for img_path in jt:
-                        self.targets += [i]
-                        self.imgs += [img_path.path]
+        targets = []
+        self.texts = []
+        for dirpath, dirnames, _ in os.walk(self.root):
+            for i, label in enumerate(dirnames):
+                self.classes.append(label)
+                for _, _, filenames in os.walk(os.path.join(dirpath, label)):
+                    self.texts += [os.path.join(dirpath, label, name) for name in filenames]
+                    targets += [i] * len(filenames)
+        return targets
 
-    def __getitem__(self, item):
-        img = Image.open(self.imgs[item])
-        img = tf.to_tensor(img)
-        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        return img, self.targets[item]
+    def _load_samples(self):
+        samples = []
+        for fname in self.texts:
+            with io.open(fname, encoding='utf-8') as f:
+                doc = f.read()
+            doc = [self.nlp[i] for i in doc.split()]
+            padding = self.context - len(doc)
+            if padding > 0:
+                if padding == self.context:
+                    samples.append(torch.zeros((self.context, 300)))
+                else:
+                    samples.append(F.pad(torch.tensor(doc), [0, 0, 0, padding]))
+            else:
+                samples.append(torch.tensor(doc[:self.context]))
+        return samples
 
-    def __len__(self):
-        return len(self.targets)
+    def _load_samples_custom_embedding(self):
+        vocab = set()
+        samples = []
+        clean = lambda word: word  # ''.join([c for c in word if c.isalnum()])
+        for fname in self.texts:
+            with io.open(fname, encoding='utf-8') as f:
+                doc = f.read()
+            doc = [clean(token) for token in doc.split()]
+            samples.append(doc)
+            vocab.update(doc)
+        self.lookup = {w: i for i, w in enumerate(sorted(vocab))}
+        for i in range(len(samples)):
+            t = torch.tensor([self.lookup[word] for word in samples[i]], dtype=torch.long)
+            padding = self.context - len(t)
+            if padding > 0:
+                if padding == self.context:
+                    samples[i] = torch.zeros(self.context, dtype=torch.long)
+                samples[i] = F.pad(t, [0, padding])
+            else:
+                samples[i] = t[:self.context]
 
-
-class TobaccoTxtDataset(torch.utils.data.Dataset):
-    def __init__(self, txt_root_dir):
-        super(TobaccoTxtDataset, self).__init__()
-        self.classes = []
-        self.targets = []
-        self.txts = []
-        with os.scandir(txt_root_dir) as it:
-            for i, txt_class_path in enumerate(it):
-                self.classes += [txt_class_path.name]
-                with os.scandir(txt_class_path) as jt:
-                    for txt_path in os.scandir(jt):
-                        self.targets += [i]
-                        self.txts += [txt_path.path]
-
-    def __getitem__(self, item):
-        txt = torch.load(self.txts[item]).float()
-        return txt, self.targets[item]
-
-    def __len__(self):
-        return len(self.targets)
-
-
-if __name__ == '__main__':
-    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
-    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
-    d = TobaccoDataset(f'{img_dataset_dir}', f'{txt_dataset_dir}')
-    r = torch.utils.data.random_split(d, [800, 200, 2482])
-    d_train = r[0]
-    d_val = r[1]
-    d_test = r[2]
-    dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-    dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-    dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
+        return samples
