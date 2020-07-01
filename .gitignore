@@ -4,3 +4,4 @@ test/models
 .idea/
 __pycache__/venv
 .python-version
+__pycache__
