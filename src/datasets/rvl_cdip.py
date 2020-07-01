@@ -1,22 +1,3 @@
-"""
-    Multimodal side-tuning for document classification
-    Copyright (C) 2020  S.P. Zingaro <mailto:stefanopio.zingaro@unibo.it>.
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
 from __future__ import division, print_function
 
 import os
@@ -25,7 +6,7 @@ from warnings import filterwarnings
 
 import numpy as np
 import torch
-import torchvision.transforms.functional as TF
+import torchvision.transforms.functional as tf
 from PIL import Image
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
@@ -46,18 +27,17 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
-            txt_class_path = f'{txt_root_dir}/{label}'
-            img_class_path = f'{img_root_dir}/{label}'
-            self.classes += [label]
-            for txt_path in os.scandir(txt_class_path):
-                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
-                self.targets += [i]
-                self.imgs += [img_path]
-                self.txts += [txt_path.path]
+        with zip(os.scandir(txt_root_dir), os.scandir(img_root_dir)) as it:
+            for i, (txt_class_path, img_class_path) in enumerate(it):
+                self.classes += [img_class_path.name]
+                with zip(os.scandir(txt_class_path), os.scandir(img_class_path)) as jt:
+                    for txt_path, img_path in jt:
+                        self.targets += [i]
+                        self.imgs += [img_path.path]
+                        self.txts += [txt_path.path]
 
     def __getitem__(self, item):
-        img = TF.to_tensor(Image.open(self.imgs[item]))
+        img = tf.to_tensor(Image.open(self.imgs[item]))
         txt = torch.load(self.txts[item]).float()
         return (img, txt), self.targets[item]
 
@@ -71,16 +51,18 @@ class RvlImgDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.imgs = []
-        for i, label in enumerate(sorted(os.listdir(img_root_dir))):
-            img_class_path = f'{img_root_dir}/{label}'
-            self.classes += [label]
-            with os.scandir(img_class_path) as it:
-                for img_path in it:
-                    self.targets += [i]
-                    self.imgs += [img_path.path]
+        with os.scandir(img_root_dir) as it:
+            for i, img_class_path in enumerate(it):
+                self.classes += [img_class_path.name]
+                with os.scandir(img_class_path) as jt:
+                    for img_path in jt:
+                        self.targets += [i]
+                        self.imgs += [img_path.path]
 
     def __getitem__(self, item):
-        img = TF.to_tensor(Image.open(self.imgs[item]))
+        img = Image.open(self.imgs[item])
+        img = tf.to_tensor(img)
+        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         return img, self.targets[item]
 
     def __len__(self):
@@ -93,13 +75,13 @@ class RvlTxtDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.txts = []
-        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
-            txt_class_path = f'{txt_root_dir}/{label}'
-            self.classes += [label]
-            with os.scandir(txt_class_path) as it:
-                for txt_path in it:
-                    self.targets += [i]
-                    self.txts += [txt_path.path]
+        with os.scandir(txt_root_dir) as it:
+            for i, txt_class_path in enumerate(it):
+                self.classes += [txt_class_path.name]
+                with os.scandir(txt_class_path) as jt:
+                    for txt_path in jt:
+                        self.targets += [i]
+                        self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
@@ -107,3 +89,14 @@ class RvlTxtDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.targets)
+
+
+if __name__ == '__main__':
+    img_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/RVL-CDIP'
+    txt_dataset_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-Large'
+    d_train = RvlDataset(f'{img_dataset_dir}/train', f'{txt_dataset_dir}/train')
+    dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
+    d_val = RvlDataset(f'{img_dataset_dir}/val', f'{txt_dataset_dir}/val')
+    dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
+    d_test = RvlDataset(f'{img_dataset_dir}/test', f'{txt_dataset_dir}/test')
+    dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
