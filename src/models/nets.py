@@ -34,7 +34,7 @@ class FusionNetConcat(nn.Module):
             128)
 
         self.classifier = nn.Sequential(nn.Dropout(self.dropout_prob),
-                                        nn.Linear(128*3, self.num_classes))
+                                        nn.Linear(128 * 3, self.num_classes))
 
     def forward(self, y):
         b_x, s_text_x = y[0], y[1]
@@ -150,6 +150,50 @@ class FusionSideNetFc(nn.Module):
         return x, d
 
 
+class FusionSideNetFcResNet(nn.Module):
+    def __init__(self, embedding_dim, num_classes, alphas=None,
+                 dropout_prob=.5, custom_embedding=False,
+                 custom_num_embeddings=0, side_fc=512):
+        super(FusionSideNetFcResNet, self).__init__()
+        if alphas is None:
+            alphas = [.3, .3]
+        self.alphas = alphas
+
+        self.base = ResNet(num_classes=num_classes, classify=False)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+        self.side_image = ResNet(num_classes=num_classes, classify=False)
+        self.image_output_dim = 2048
+        self.side_text = ShawnNet(embedding_dim,
+                                  num_classes=num_classes,
+                                  windows=[3, 4, 5],
+                                  custom_embedding=custom_embedding,
+                                  custom_num_embeddings=custom_num_embeddings,
+                                  classify=False)
+
+        self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.image_output_dim)
+        self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                        nn.Linear(self.image_output_dim, side_fc),
+                                        nn.Dropout(dropout_prob),
+                                        nn.Linear(side_fc, num_classes))
+
+    def forward(self, y):
+        b_x, s_text_x = y[0], y[1]
+
+        s_image_x = b_x.clone()
+        s_image_x = self.side_image(s_image_x)
+
+        b_x = self.base(b_x)
+
+        s_text_x = self.side_text(s_text_x)
+        s_text_x = self.fc1fus(s_text_x)
+
+        x, d = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=True)
+        x = self.classifier(x)
+
+        return x, d
+
+
 class TextSideNet(nn.Module):
     def __init__(self, embedding_dim, num_classes, alphas=None,
                  dropout_prob=.2, custom_embedding=False,
@@ -208,6 +252,35 @@ class MobileNet(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.mean([2, 3])
+        if self.classify:
+            x = self.classifier(x)
+
+        return x
+
+
+class ResNet(nn.Module):
+    def __init__(self, num_classes, classify=True):
+        super(ResNet, self).__init__()
+        self.model = torchvision.models.resnet50(pretrained=True)
+        expansion = 4
+        self.classify = classify
+        if self.classify:
+            self.classifier = nn.Linear(512 * expansion, num_classes)
+
+    def forward(self, x):
+        x = self.model.conv1(x)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
+
+        x = self.model.avgpool(x)
+        x = torch.flatten(x, 1)
+
         if self.classify:
             x = self.classifier(x)
 

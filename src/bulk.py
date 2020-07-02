@@ -10,9 +10,8 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
 import conf
-from datasets.rvl_cdip import RvlDataset
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFc, FusionNetConcat, FusionSideNetDirect
+from models import TrainingPipeline, FusionSideNetFc, FusionNetConcat, FusionSideNetDirect, FusionSideNetFcResNet
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -32,21 +31,27 @@ for task in conf.tasks:
     dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
     dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 
-    if task[0] == 'direct':
-        model = FusionSideNetDirect(300,
-                                    num_classes=10,
-                                    alphas=[int(i)/10 for i in task[4].split('-')],
-                                    dropout_prob=.5).to(conf.device)
-    elif task[0] == 'concat':
+    if task[0] == 'concat':
         model = FusionNetConcat(300,
                                 num_classes=10,
                                 dropout_prob=.5).to(conf.device)
-    else:
+    elif task[0] == 'mobilenet':
         model = FusionSideNetFc(300,
                                 num_classes=10,
-                                alphas=[int(i)/10 for i in task[4].split('-')],
+                                alphas=[int(i) / 10 for i in task[4].split('-')],
                                 dropout_prob=.5,
                                 side_fc=int(task[0].split('x')[1])).to(conf.device)
+    elif task[0] == 'resnet':
+        model = FusionSideNetFcResNet(300,
+                                      num_classes=10,
+                                      alphas=[int(i) / 10 for i in task[4].split('-')],
+                                      dropout_prob=.5,
+                                      side_fc=int(task[0].split('x')[1])).to(conf.device)
+    else:
+        model = FusionSideNetDirect(300,
+                                    num_classes=10,
+                                    alphas=[int(i) / 10 for i in task[4].split('-')],
+                                    dropout_prob=.5).to(conf.device)
 
     if task[3] == 'min':
         _, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
@@ -72,6 +77,6 @@ for task in conf.tasks:
     s = f'{",".join([str(i) for i in task])},' \
         f'{best_valid_acc:.3f},' \
         f'{test_acc:.3f},' \
-        f'{",".join([f"{r[i] / np.sum(r):.3f}" for i,r in enumerate(confusion_matrix)])}\n'
+        f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(confusion_matrix)])}\n'
     with open('../test/results_tobacco.csv', 'a+') as f:
         f.write(s)

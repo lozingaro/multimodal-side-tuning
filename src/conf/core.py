@@ -15,7 +15,8 @@ tasks_classifier = [
     # '1280x128x10',
     # '1280x256x10',
     # '1280x512x10',
-    '1280x1024x10'
+    'resnet',
+    'mobilenet',
     # 'direct',
     # 'concat'
 ]
@@ -26,12 +27,17 @@ tasks_loss_weigth = [
     # 'min',
     # 'max'
 ]
-tasks_coeffs = [
-    # '2-4-4',
-    # '2-3-5'
-    # '4-3-3',
-    # '5-3-2',
-    # '4-4-2',
-    '3-3-4'
-]
+
+tasks_coeffs = ['2-3-5',
+                '2-4-4',
+                '2-5-3',
+                '3-2-5',
+                '3-3-4',
+                '3-4-3',
+                '3-5-2',
+                '4-2-4',
+                '4-3-3',
+                '4-4-2',
+                '5-2-3',
+                '5-3-2']
 tasks = itertools.product(tasks_classifier, tasks_optimizer, tasks_embedding, tasks_loss_weigth, tasks_coeffs)
