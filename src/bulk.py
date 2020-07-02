@@ -40,13 +40,13 @@ for task in conf.tasks:
                                 num_classes=10,
                                 alphas=[int(i) / 10 for i in task[4].split('-')],
                                 dropout_prob=.5,
-                                side_fc=int(task[0].split('x')[1])).to(conf.device)
+                                side_fc=1024).to(conf.device)
     elif task[0] == 'resnet':
         model = FusionSideNetFcResNet(300,
                                       num_classes=10,
                                       alphas=[int(i) / 10 for i in task[4].split('-')],
                                       dropout_prob=.5,
-                                      side_fc=int(task[0].split('x')[1])).to(conf.device)
+                                      side_fc=1024).to(conf.device)
     else:
         model = FusionSideNetDirect(300,
                                     num_classes=10,
