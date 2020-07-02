@@ -3,10 +3,10 @@ from __future__ import division, print_function
 from collections import OrderedDict
 from warnings import filterwarnings
 
+import fasttext as fasttext
 import numpy as np
 import torch
 import torch.nn as nn
-from torchtext.vocab import FastText
 from PIL import Image
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
@@ -30,7 +30,7 @@ for task in conf.tasks:
                                      image_std_norm=[0.229, 0.224, 0.225])
         torch.save(image_dataset, conf.image_dataset_path)
     if task[2] == 'fasttext':
-        nlp = FastText()
+        nlp = fasttext.load_model('/data01/stefanopio.zingaro/datasets/word2vec/cc.en.300.bin')
         text_dataset = TextDataset(conf.text_root_dir, nlp=nlp)
     else:
         text_dataset = TextDataset(conf.text_root_dir, nlp=None)

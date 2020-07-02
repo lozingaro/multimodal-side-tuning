@@ -56,7 +56,7 @@ model = FusionSideNetFc(300,
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 _, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
 weight = torch.from_numpy(np.min(c) / c).type(torch.FloatTensor).to(conf.device)
-criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
+criterion = nn.CrossEntropyLoss().to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / num_classes) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
