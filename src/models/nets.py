@@ -323,13 +323,15 @@ class VGG(nn.Module):
         self.model = torchvision.models.vgg16(pretrained=True)
         self.name = 'vgg'
         self.classify = classify
-        if self.classify:
-            self.classifier = nn.Sequential(
+        self.preclassifier = nn.Sequential(
                 nn.Linear(512 * 7 * 7, 4096),
                 nn.ReLU(True),
                 nn.Dropout(),
                 nn.Linear(4096, 4096),
                 nn.ReLU(True),
+            )
+        if self.classify:
+            self.classifier = nn.Sequential(
                 nn.Dropout(),
                 nn.Linear(4096, num_classes),
             )
@@ -338,6 +340,7 @@ class VGG(nn.Module):
         x = self.model.features(x)
         x = self.model.avgpool(x)
         x = torch.flatten(x, 1)
+        x = self.preclassifier(x)
         if self.classify:
             x = self.classifier(x)
         return x
