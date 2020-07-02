@@ -10,7 +10,7 @@ batch_sizes = {
     'val': 4,
     'test': 32
 }
-text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/fasttext/cc.en.300.bin'
+text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/word2vec/cc.en.300.bin'
 text_dataset_custom_path = '/tmp/text_dataset_custom.pth'
 text_dataset_fasttext_path = '/tmp/text_dataset_fasttext.pth'
 image_dataset_path = '/tmp/image_dataset.pth'

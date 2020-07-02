@@ -30,7 +30,7 @@ for task in conf.tasks:
                                      image_std_norm=[0.229, 0.224, 0.225])
         torch.save(image_dataset, conf.image_dataset_path)
     if task[2] == 'fasttext':
-        nlp = fasttext.load_model('/data01/stefanopio.zingaro/datasets/word2vec/cc.en.300.bin')
+        nlp = fasttext.load_model(conf.text_fasttext_model_path)
         text_dataset = TextDataset(conf.text_root_dir, nlp=nlp)
     else:
         text_dataset = TextDataset(conf.text_root_dir, nlp=None)
