@@ -11,7 +11,8 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFc, FusionNetConcat, FusionSideNetDirect, FusionSideNetFcResNet
+from models import TrainingPipeline, FusionSideNetFc, FusionNetConcat, FusionSideNetDirect, FusionSideNetFcResNet, \
+    FusionSideNetDirectResNet
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -40,18 +41,23 @@ for task in conf.tasks:
                                 num_classes=10,
                                 alphas=[int(i) / 10 for i in task[4].split('-')],
                                 dropout_prob=.5,
-                                side_fc=1024).to(conf.device)
+                                side_fc=512).to(conf.device)
     elif task[0] == 'resnet':
         model = FusionSideNetFcResNet(300,
                                       num_classes=10,
                                       alphas=[int(i) / 10 for i in task[4].split('-')],
                                       dropout_prob=.5,
-                                      side_fc=1024).to(conf.device)
-    else:
+                                      side_fc=512).to(conf.device)
+    elif task[0] == 'mobilenet-direct':
         model = FusionSideNetDirect(300,
                                     num_classes=10,
                                     alphas=[int(i) / 10 for i in task[4].split('-')],
                                     dropout_prob=.5).to(conf.device)
+    elif task[0] == 'resnet-direct':
+        model = FusionSideNetDirectResNet(300,
+                                          num_classes=10,
+                                          alphas=[int(i) / 10 for i in task[4].split('-')],
+                                          dropout_prob=.5).to(conf.device)
 
     if task[3] == 'min':
         _, c = np.unique(np.array(d.targets)[d_train.indices], return_counts=True)
