@@ -5,3 +5,4 @@ test/models
 __pycache__/venv
 .python-version
 __pycache__
+.vector_cache
