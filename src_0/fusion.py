@@ -62,7 +62,7 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
 best_valid_acc, test_acc, cm = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs)
 
-s = f'1280x512x10,sgd,fasttext,min,3-3-4,' \
+s = f'1280x1024x10,sgd,fasttext,min,3-3-4,' \
     f'{best_valid_acc:.3f},' \
     f'{test_acc:.3f},' \
     f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(cm)])}\n'
