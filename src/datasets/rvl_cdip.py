@@ -58,6 +58,7 @@ class RvlDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         img = TF.to_tensor(Image.open(self.imgs[item]))
+        img = TF.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         txt = torch.load(self.txts[item]).float()
         return (img, txt), self.targets[item]
 
@@ -80,6 +81,7 @@ class RvlImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         img = TF.to_tensor(Image.open(self.imgs[item]))
+        img = TF.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         return img, self.targets[item]
 
     def __len__(self):

@@ -102,3 +102,19 @@ class TobaccoTxtDataset(torch.utils.data.Dataset):
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
         return txt, self.targets[item]
+
+
+if __name__ == '__main__':
+    def move(source, dest):
+        from subprocess import call
+        call(["mv", source, dest])
+        return None
+    d = TobaccoDataset(img_root_dir='../../data/Tobacco3482-jpg', txt_root_dir='../../data/QS-OCR-small')
+    d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
+    for i in d_train.indices:
+        l = d.classes[d[i][1]]
+        os.mkdir(f'../../data/tobacco/train/img/{l}')
+        os.mkdir(f'../../data/tobacco/train/txt/{l}')
+        move(d.imgs[i], f'../../data/tobacco/train/img/{l}/.')
+        move(d.txts[i], f'../../data/tobacco/train/txt/{l}/.')
+

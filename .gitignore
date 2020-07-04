@@ -4,4 +4,5 @@ test/models
 .idea
 __pycache__
 venv
-env
+.vector_cache
+.python-version
