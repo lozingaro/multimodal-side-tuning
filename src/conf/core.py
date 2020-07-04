@@ -2,11 +2,11 @@ import itertools
 import torch
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-tobacco_img_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
-tobacco_txt_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
+tobacco_img_root_dir = '../data/Tobacco3482-jpg'
+tobacco_txt_root_dir = '../data/QS-OCR-small'
 rlv_img_root_dir = '/data01/stefanopio.zingaro/datasets/RVL-CDIP'
 rlv_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-Large'
-text_fasttext_model_path = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/cc.en.300.bin'
+text_fasttext_model_path = '/data01/stefanopio.zingaro/datasets/word2vec/fasttext/cc.en.300.bin'
 
 rvl_labels = ['Letter', 'Form', 'Email', 'Handwritten', 'Advertisement', 'Scientific report', 'Scientific publication', 'Specification', 'File folder', 'News article', 'Budget', 'Invoice', 'Presentation', 'Questionnaire', 'Resume', 'Memo']
 tobacco_labels = ['Advertisement', 'Email', 'Form', 'Letter', 'Memo', 'News', 'Note', 'Report', 'Resume', 'Scientific']

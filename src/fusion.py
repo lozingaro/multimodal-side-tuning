@@ -25,7 +25,7 @@ random.seed(42)
 num_classes = 16
 labels = conf.rvl_labels
 num_epochs = 10
-result_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/results_rvl.csv'
+result_file = '../test/results_rvl.csv'
 # cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confusion_matrices/cshawn_tobacco.png'
 
 # d = TobaccoDataset(conf.tobacco_img_root_dir, conf.tobacco_txt_root_dir)
