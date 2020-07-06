@@ -290,7 +290,7 @@ class SideNetVGG(nn.Module):
                  dropout_prob=.5):
         super(SideNetVGG, self).__init__()
         if alphas is None:
-            alphas = [.3, .3, .4]
+            alphas = [.5, .5]
         self.alphas = alphas
 
         self.base = VGG(num_classes=num_classes, classify=False)
@@ -314,7 +314,7 @@ class SideNetResNet(nn.Module):
                  dropout_prob=.5):
         super(SideNetResNet, self).__init__()
         if alphas is None:
-            alphas = [.3, .3, .4]
+            alphas = [.5, .5]
         self.alphas = alphas
 
         self.base = ResNet(num_classes=num_classes, classify=False)
@@ -322,6 +322,30 @@ class SideNetResNet(nn.Module):
             param.requires_grad_(False)
         self.side_image = ResNet(num_classes=num_classes, classify=False)
         self.image_output_dim = 2048
+        self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                        nn.Linear(self.image_output_dim, num_classes))
+
+    def forward(self, y):
+        s_x = y.clone()
+        s_x = self.side_image(s_x)
+        b_x = self.base(y)
+        x = merge([b_x, s_x], self.alphas, return_distance=False)
+        return self.classifier(x)
+
+
+class SideNetMobileNet(nn.Module):
+    def __init__(self, num_classes, alphas=None,
+                 dropout_prob=.5):
+        super(SideNetMobileNet, self).__init__()
+        if alphas is None:
+            alphas = [.5, .5]
+        self.alphas = alphas
+
+        self.base = MobileNet(num_classes=num_classes, classify=False)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+        self.side_image = MobileNet(num_classes=num_classes, classify=False)
+        self.image_output_dim = 1280
         self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
                                         nn.Linear(self.image_output_dim, num_classes))
 
