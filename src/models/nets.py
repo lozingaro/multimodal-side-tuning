@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -134,20 +136,34 @@ class FusionSideNetFc(nn.Module):
                                         nn.Linear(side_fc, self.num_classes))
 
     def forward(self, y):
-        b_x, s_text_x = y[0], y[1]
-
+        b_x, s_text_x = y
         s_image_x = b_x.clone()
+
+        t0 = time.time()
+
         s_image_x = self.side_image(s_image_x)
 
+        t1 = time.time()
+
         b_x = self.base(b_x)
+
+        t2 = time.time()
 
         s_text_x = self.side_text(s_text_x)
         s_text_x = self.fc1fus(s_text_x)
 
-        x, d = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=True)
+        t3 = time.time()
+
+        x = merge([b_x, s_image_x, s_text_x], self.alphas, return_distance=False)
         x = self.classifier(x)
 
-        return x, d
+        t4 = time.time()
+
+        print(f'SIDE IMAGE: {t1 - t0:.3f}\n'
+              f'BASE IMAGE: {t2 - t1:.3f}\n'
+              f'SIDE TEXT: {t3 - t2:.3f}\n'
+              f'MERGE AND CLASSIFY: {t4 - t3:.3f}')
+        return x
 
 
 class FusionSideNetFcResNet(nn.Module):
