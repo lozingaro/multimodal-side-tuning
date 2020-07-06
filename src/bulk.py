@@ -24,25 +24,16 @@ for task in conf.tasks:
     np.random.seed(42)
     random.seed(42)
 
-    d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
-    dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
-    d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
-    dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
-    d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
-    dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
-    num_classes = 16
-    num_epochs = 10
-
-    # d = TobaccoDataset(conf.tobacco_img_root_dir, conf.tobacco_txt_root_dir)
-    # r = torch.utils.data.random_split(d, [800, 200, 2482])
-    # d_train = r[0]
-    # d_val = r[1]
-    # d_test = r[2]
-    # dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
-    # dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
-    # dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
-    # num_classes = 10
-    # num_epochs = 100
+    d = TobaccoDataset(conf.tobacco_img_root_dir, conf.tobacco_txt_root_dir)
+    r = torch.utils.data.random_split(d, [800, 200, 2482])
+    d_train = r[0]
+    d_val = r[1]
+    d_test = r[2]
+    dl_train = DataLoader(d_train, batch_size=16, shuffle=True)
+    dl_val = DataLoader(d_val, batch_size=4, shuffle=True)
+    dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
+    num_classes = 10
+    num_epochs = 100
 
     if task[0] == 'concat':
         model = FusionNetConcat(300,

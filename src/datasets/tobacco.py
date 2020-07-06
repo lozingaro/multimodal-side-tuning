@@ -58,9 +58,7 @@ class TobaccoImgDataset(torch.utils.data.Dataset):
                         self.imgs += [img_path.path]
 
     def __getitem__(self, item):
-        img = Image.open(self.imgs[item])
-        img = tf.to_tensor(img)
-        img = tf.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        img = tf.to_tensor(Image.open(self.imgs[item]))
         return img, self.targets[item]
 
     def __len__(self):
