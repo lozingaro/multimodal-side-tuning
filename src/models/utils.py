@@ -67,8 +67,6 @@ class TrainingPipeline:
                 else:
                     print(f'{dataloader_test.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
 
-        plt.plot(train_distances)
-        plt.show()
         return best_valid_acc, test_acc, confusion_matrix
 
     def _train(self, data):
@@ -132,7 +130,7 @@ class TrainingPipeline:
                 loss = self.criterion(outputs, labels)
                 eval_loss += loss.item() * batch_size
                 _, preds = torch.max(outputs, 1)
-                eval_acc += (preds == labels).sum().item()
+                eval_acc += torch.sum(preds == labels.data)
 
                 for i, l in enumerate(labels):
                     confusion_matrix[l.item(), preds[i].item()] += 1
