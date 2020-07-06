@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.tobacco import TobaccoImgDataset
-from models import TrainingPipeline, SideNetResNet
+from models import TrainingPipeline, SideNetVGG
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -29,9 +29,9 @@ dl_test = DataLoader(d_test, batch_size=32, shuffle=False)
 num_classes = 10
 num_epochs = 100
 
-model = SideNetResNet(num_classes=num_classes,
-                      alphas=[.5, .5],
-                      dropout_prob=.5).to(conf.device)
+model = SideNetVGG(num_classes=num_classes,
+                   alphas=[.5, .5],
+                   dropout_prob=.5).to(conf.device)
 
 criterion = nn.CrossEntropyLoss().to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
@@ -43,7 +43,7 @@ pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.
 best_valid_acc, test_acc, confusion_matrix = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs)
 
 print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-s = 'side-resnet,sgd,-,no,5-5,' \
+s = 'side-vgg,sgd,-,no,5-5,' \
     f'{best_valid_acc:.3f},' \
     f'{test_acc:.3f},' \
     f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(confusion_matrix)])}\n'

@@ -285,6 +285,30 @@ class VGG(nn.Module):
         return x
 
 
+class SideNetVGG(nn.Module):
+    def __init__(self, num_classes, alphas=None,
+                 dropout_prob=.5):
+        super(SideNetVGG, self).__init__()
+        if alphas is None:
+            alphas = [.3, .3, .4]
+        self.alphas = alphas
+
+        self.base = VGG(num_classes=num_classes, classify=False)
+        for param in self.base.parameters():
+            param.requires_grad_(False)
+        self.side_image = VGG(num_classes=num_classes, classify=False)
+        self.image_output_dim = 4096
+        self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                        nn.Linear(self.image_output_dim, num_classes))
+
+    def forward(self, y):
+        s_x = y.clone()
+        s_x = self.side_image(s_x)
+        b_x = self.base(y)
+        x = merge([b_x, s_x], self.alphas, return_distance=False)
+        return self.classifier(x)
+
+
 class SideNetResNet(nn.Module):
     def __init__(self, num_classes, alphas=None,
                  dropout_prob=.5):
