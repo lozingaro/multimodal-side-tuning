@@ -1,11 +1,14 @@
-import copy
+"""
+Creative Common 4.0 License for reuse with citation
+&copy; 2020 Stefano Pio Zingaro
+"""
+
 import itertools
 import time
 
-import matplotlib.pyplot as plt
+import copy
 import numpy as np
 import torch
-from torch.utils.data import Subset
 from tqdm import tqdm
 
 
@@ -20,8 +23,8 @@ class TrainingPipeline:
         self.device = device
         self.num_classes = num_classes
 
-    def run(self, dataloader_train, dataloader_eval=None, dataloader_test=None,
-            num_epochs=50):
+    def run(self, data_train, data_eval=None, data_test=None,
+            num_epochs=50, classes=None):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
         train_distances = []
@@ -29,14 +32,14 @@ class TrainingPipeline:
         try:
             for epoch in range(num_epochs):
                 start_time = time.time()
-                train_loss, train_acc, epoch_distances = self._train(dataloader_train)
+                train_loss, train_acc, epoch_distances = self._train(data_train)
                 train_distances += epoch_distances
 
                 valid_loss, valid_acc = .0, .0
-                if dataloader_eval is not None:
-                    valid_loss, valid_acc, _ = self._eval(dataloader_eval)
+                if data_eval is not None:
+                    valid_loss, valid_acc, _ = self._eval(data_eval)
 
-                    if valid_acc >= best_valid_acc and epoch >= num_epochs * .5:
+                    if valid_acc >= best_valid_acc:
                         best_valid_acc = valid_acc
                         best_model = copy.deepcopy(self.model.state_dict())
 
@@ -46,7 +49,7 @@ class TrainingPipeline:
 
                 print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
                 print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc:.3f} (train)')
-                if dataloader_eval is not None:
+                if data_eval is not None:
                     print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc:.3f} (valid)')
 
         except KeyboardInterrupt:
@@ -55,19 +58,16 @@ class TrainingPipeline:
         self.model.load_state_dict(best_model)
 
         test_loss, test_acc, confusion_matrix = 0, 0, None
-        if dataloader_test is not None:
+        if data_test is not None:
             print('Checking the results of test dataset...')
-            test_loss, test_acc, confusion_matrix = self._eval(dataloader_test)
+            test_loss, test_acc, confusion_matrix = self._eval(data_test)
             print(f'\tBest Acc: {best_valid_acc:.3f} (valid)')
             print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc:.3f} (test)\n')
             print(f'\n{"Category":10s} - Accuracy')
             for i, r in enumerate(confusion_matrix):
-                if type(dataloader_test.dataset) is Subset:
-                    print(f'{dataloader_test.dataset.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
-                else:
-                    print(f'{dataloader_test.dataset.classes[i]} - {r[i] / np.sum(r):.3f}')
+                print(f'{classes[i]} - {r[i] / np.sum(r):.3f}')
 
-        return best_valid_acc, test_acc, confusion_matrix
+        return best_valid_acc, test_acc, confusion_matrix, train_distances
 
     def _train(self, data):
         self.model.train()
@@ -130,7 +130,7 @@ class TrainingPipeline:
                 loss = self.criterion(outputs, labels)
                 eval_loss += loss.item() * batch_size
                 _, preds = torch.max(outputs, 1)
-                eval_acc += torch.sum(preds == labels.data)
+                eval_acc += (preds == labels).sum().item()
 
                 for i, l in enumerate(labels):
                     confusion_matrix[l.item(), preds[i].item()] += 1
@@ -140,7 +140,7 @@ class TrainingPipeline:
 
 
 def merge(variables, weights, return_distance=False):
-    coeffs = weights  # + [1 - sum([i for i in weights])]
+    coeffs = weights + [1 - sum([i for i in weights])]
     res = torch.zeros_like(variables[0], device=variables[0].device)
 
     for coeff, var in zip(coeffs, variables):

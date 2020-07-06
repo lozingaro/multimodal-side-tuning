@@ -1,3 +1,8 @@
+"""
+Creative Common 4.0 License for reuse with citation
+&copy; 2020 Stefano Pio Zingaro
+"""
+
 from __future__ import division, print_function
 
 import os
@@ -27,11 +32,14 @@ class RvlDataset(torch.utils.data.Dataset):
         self.targets = []
         self.imgs = []
         self.txts = []
-        for i, (txt_class_path, img_class_path) in enumerate(zip(os.scandir(txt_root_dir), os.scandir(img_root_dir))):
-            self.classes += [img_class_path.name]
-            for txt_path, img_path in zip(os.scandir(txt_class_path), os.scandir(img_class_path)):
+        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+            txt_class_path = f'{txt_root_dir}/{label}'
+            img_class_path = f'{img_root_dir}/{label}'
+            self.classes += [label]
+            for txt_path in os.scandir(txt_class_path):
+                img_path = f'{img_class_path}/{".".join(txt_path.name.split(".")[:-1])}.jpg'
                 self.targets += [i]
-                self.imgs += [img_path.path]
+                self.imgs += [img_path]
                 self.txts += [txt_path.path]
 
     def __getitem__(self, item):
@@ -49,13 +57,13 @@ class RvlImgDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.imgs = []
-        with os.scandir(img_root_dir) as it:
-            for i, img_class_path in enumerate(it):
-                self.classes += [img_class_path.name]
-                with os.scandir(img_class_path) as jt:
-                    for img_path in jt:
-                        self.targets += [i]
-                        self.imgs += [img_path.path]
+        for i, label in enumerate(sorted(os.listdir(img_root_dir))):
+            img_class_path = f'{img_root_dir}/{label}'
+            self.classes += [label]
+            with os.scandir(img_class_path) as it:
+                for img_path in it:
+                    self.targets += [i]
+                    self.imgs += [img_path.path]
 
     def __getitem__(self, item):
         img = Image.open(self.imgs[item])
@@ -73,13 +81,13 @@ class RvlTxtDataset(torch.utils.data.Dataset):
         self.classes = []
         self.targets = []
         self.txts = []
-        with os.scandir(txt_root_dir) as it:
-            for i, txt_class_path in enumerate(it):
-                self.classes += [txt_class_path.name]
-                with os.scandir(txt_class_path) as jt:
-                    for txt_path in jt:
-                        self.targets += [i]
-                        self.txts += [txt_path.path]
+        for i, label in enumerate(sorted(os.listdir(txt_root_dir))):
+            txt_class_path = f'{txt_root_dir}/{label}'
+            self.classes += [label]
+            with os.scandir(txt_class_path) as it:
+                for txt_path in it:
+                    self.targets += [i]
+                    self.txts += [txt_path.path]
 
     def __getitem__(self, item):
         txt = torch.load(self.txts[item]).float()
