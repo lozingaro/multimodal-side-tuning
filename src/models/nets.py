@@ -296,6 +296,8 @@ class SideNetVGG(nn.Module):
         self.base = VGG(num_classes=num_classes, classify=False)
         for param in self.base.parameters():
             param.requires_grad_(False)
+        for param in self.base.preclassifier.parameters():
+            param.requires_grad_(False)
         self.side_image = VGG(num_classes=num_classes, classify=False)
         self.image_output_dim = 4096
         self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
