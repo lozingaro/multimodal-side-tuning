@@ -8,8 +8,8 @@ import torch
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 tobacco_img_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/Tobacco3482-jpg'
 tobacco_txt_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-small'
-rlv_img_root_dir = '/data01/stefanopio.zingaro/datasets/RVL-CDIP'
-rlv_txt_root_dir = '/data01/stefanopio.zingaro/datasets/QS-OCR-Large'
+rlv_img_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/RVL-CDIP'
+rlv_txt_root_dir = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/QS-OCR-Large'
 text_fasttext_model_path = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/data/cc.en.300.bin'
 
 tasks_classifier = ['1280x512x10', '1280x1024x10']  # ['direct', '1280x128x10', '1280x256x10', '1280x512x10', '1280x1024x10', 'concat', ]
