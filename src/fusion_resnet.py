@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 
 import conf
 from datasets.rvl_cdip import RvlDataset
-from models import TrainingPipeline, FusionSideNetFc
+from models import TrainingPipeline, FusionSideNetFcResNet
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -41,8 +41,8 @@ dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
 
-model = FusionSideNetFc(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=side_fc).to(conf.core.device)
-print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+model = FusionSideNetFcResNet(300, num_classes=num_classes, alphas=[.3, .3, .4], dropout_prob=.5, side_fc=side_fc).to(conf.core.device)
+print(sum(p.numel() for p in model.parameters()))
 criterion = nn.CrossEntropyLoss().to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)

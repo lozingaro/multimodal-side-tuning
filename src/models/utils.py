@@ -3,10 +3,9 @@ Creative Common 4.0 License for reuse with citation
 &copy; 2020 Stefano Pio Zingaro
 """
 
-import itertools
+import copy
 import time
 
-import copy
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -27,13 +26,11 @@ class TrainingPipeline:
             num_epochs=50, classes=None):
         best_model = copy.deepcopy(self.model.state_dict())
         best_valid_acc = 0.0
-        train_distances = []
 
         try:
             for epoch in range(num_epochs):
                 start_time = time.time()
-                train_loss, train_acc, epoch_distances = self._train(data_train)
-                train_distances += epoch_distances
+                train_loss, train_acc = self._train(data_train)
 
                 valid_loss, valid_acc = .0, .0
                 if data_eval is not None:
@@ -67,14 +64,13 @@ class TrainingPipeline:
             for i, r in enumerate(confusion_matrix):
                 print(f'{classes[i]} - {r[i] / np.sum(r):.3f}')
 
-        return best_valid_acc, test_acc, confusion_matrix, train_distances
+        return best_valid_acc, test_acc, confusion_matrix
 
     def _train(self, data):
         self.model.train()
 
         train_loss = 0.0
         train_acc = 0.0
-        distances = []
 
         for _, (inputs, labels) in tqdm(enumerate(data)):
             self.optimizer.zero_grad()
@@ -87,11 +83,7 @@ class TrainingPipeline:
                 inputs = inputs.to(self.device)
             labels = labels.to(self.device)
             result = self.model(inputs)
-            if type(result) is tuple:
-                outputs = result[0]
-                distances.append(result[1])
-            else:
-                outputs = result
+            outputs = result
             loss = self.criterion(outputs, labels)
             train_loss += loss.item() * batch_size
             loss.backward()
@@ -103,7 +95,7 @@ class TrainingPipeline:
             self.scheduler.step()
 
         return train_loss / len(data.dataset), train_acc / float(
-            len(data.dataset)), distances
+            len(data.dataset))
 
     def _eval(self, data):
         self.model.eval()
@@ -123,10 +115,7 @@ class TrainingPipeline:
             labels = labels.to(self.device)
             with torch.no_grad():
                 result = self.model(inputs)
-                if type(result) is tuple:
-                    outputs = result[0]
-                else:
-                    outputs = result
+                outputs = result
                 loss = self.criterion(outputs, labels)
                 eval_loss += loss.item() * batch_size
                 _, preds = torch.max(outputs, 1)
@@ -146,10 +135,4 @@ def merge(variables, weights, return_distance=False):
     for coeff, var in zip(coeffs, variables):
         res += coeff * var
 
-    if return_distance:
-        d = [torch.mean(torch.tensor(
-            [torch.dist(x[i], y[i]) / len(x[i]) for i in range(len(x))])).item()
-             for x, y in [e for e in itertools.combinations(variables, 2)]]
-        return res, d
-    else:
-        return res
+    return res
