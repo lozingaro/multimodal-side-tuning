@@ -33,11 +33,11 @@ cm_file = '/home/stefanopio.zingaro/Developer/multimodal-side-tuning/test/confus
 side_fc = 512
 
 d_train = RvlDataset(f'{conf.rlv_img_root_dir}/train', f'{conf.rlv_txt_root_dir}/train')
-dl_train = DataLoader(d_train, batch_size=48, shuffle=True)
+dl_train = DataLoader(d_train, batch_size=40, shuffle=True)
 d_val = RvlDataset(f'{conf.rlv_img_root_dir}/val', f'{conf.rlv_txt_root_dir}/val')
-dl_val = DataLoader(d_val, batch_size=48, shuffle=True)
+dl_val = DataLoader(d_val, batch_size=40, shuffle=True)
 d_test = RvlDataset(f'{conf.rlv_img_root_dir}/test', f'{conf.rlv_txt_root_dir}/test')
-dl_test = DataLoader(d_test, batch_size=48, shuffle=False)
+dl_test = DataLoader(d_test, batch_size=40, shuffle=False)
 train_targets = d_train.targets
 labels = d_train.classes
 
