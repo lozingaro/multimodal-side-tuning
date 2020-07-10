@@ -16,7 +16,7 @@ if __name__ == '__main__':
         nlp = torchtext.vocab.GloVe('42B')
         model = FusionSideNetFc(300, num_classes=10, alphas=[.3, .2, .5], dropout_prob=.5, side_fc=1024).to(device)
         img = Image.open(
-            f'./data01/stefanopio.zingaro/datasets/original/Tobacco3482-jpg/ADVE/{i}.jpg')
+            f'/data01/stefanopio.zingaro/datasets/original/Tobacco3482-jpg/ADVE/{i}.jpg')
         f = open(f'/data01/stefanopio.zingaro/datasets/original/QS-OCR-small/ADVE/{i}.txt',
                   'rb')
         t0 = time.time()
