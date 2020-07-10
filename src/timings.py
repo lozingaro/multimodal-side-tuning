@@ -7,8 +7,9 @@ import torchvision.transforms.functional as tf
 import torch.nn.functional as F
 
 from models import FusionSideNetFc
+import sys
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if sys.argv[1] == 'cuda' else 'cpu'
 
 if __name__ == '__main__':
     for i in ['2045630056', '2077189218', '2501052565', '2084568423', '24008317']:
