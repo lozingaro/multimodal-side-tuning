@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
         t2 = time.time()
 
-        img, txt = img.unsqueeze(0), txt.unsqueeze(0)
+        img, txt = img.unsqueeze(0).to(device), txt.unsqueeze(0).to(device)
         output = model((img, txt))
 
         print(f'IMAGE: {t1 - t0:.3f}\n'
