@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from models import FusionSideNetFc
 import sys
 
-device = 'cuda' if sys.argv[1] == 'cuda' else 'cpu'
+device = 'cuda'
 
 if __name__ == '__main__':
     for i in ['ADVE/2045630056', 'Email/2077189218', 'Scientific/2501052565', 'Note/2084568423', 'Memo/24008317']:
