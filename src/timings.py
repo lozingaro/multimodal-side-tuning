@@ -12,12 +12,12 @@ import sys
 device = 'cuda' if sys.argv[1] == 'cuda' else 'cpu'
 
 if __name__ == '__main__':
-    for i in ['2045630056', '2077189218', '2501052565', '2084568423', '24008317']:
+    for i in ['ADVE/2045630056', 'Email/2077189218', 'Scientific/2501052565', 'Note/2084568423', 'Memo/24008317']:
         nlp = torchtext.vocab.GloVe('42B')
         model = FusionSideNetFc(300, num_classes=10, alphas=[.3, .2, .5], dropout_prob=.5, side_fc=1024).to(device)
         img = Image.open(
-            f'/data01/stefanopio.zingaro/datasets/original/Tobacco3482-jpg/ADVE/{i}.jpg')
-        f = open(f'/data01/stefanopio.zingaro/datasets/original/QS-OCR-small/ADVE/{i}.txt',
+            f'/data01/stefanopio.zingaro/datasets/original/Tobacco3482-jpg/{i}.jpg')
+        f = open(f'/data01/stefanopio.zingaro/datasets/original/QS-OCR-small/{i}.txt',
                   'rb')
         t0 = time.time()
 
