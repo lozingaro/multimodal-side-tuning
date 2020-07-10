@@ -47,7 +47,7 @@ criterion = nn.CrossEntropyLoss().to(conf.device)
 optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / float(num_epochs)) ** .5)
 pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
-best_valid_acc, test_acc, cm, dist = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
+best_valid_acc, test_acc, cm = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs, classes=labels)
 
 s = f'1280x{side_fc}x10_mobilenet,sgd,fasttext,no,2-3-5,' \
     f'{best_valid_acc:.3f},' \
