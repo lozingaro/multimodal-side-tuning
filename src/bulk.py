@@ -10,10 +10,8 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
 import conf
-from datasets import RvlDataset
 from datasets.tobacco import TobaccoDataset
-from models import TrainingPipeline, FusionSideNetFc, FusionNetConcat, FusionSideNetDirect, FusionSideNetFcResNet, \
-    FusionSideNetDirectResNet
+from models import TrainingPipeline, FusionSideNetFcVGG
 
 filterwarnings("ignore")
 cudnn.deterministic = True
@@ -35,32 +33,24 @@ for task in conf.tasks:
     num_classes = 10
     num_epochs = 100
 
-    if task[0] == 'concat':
-        model = FusionNetConcat(300,
-                                num_classes=num_classes,
-                                dropout_prob=.5).to(conf.device)
-    elif task[0] == 'mobilenet':
-        model = FusionSideNetFc(300,
-                                num_classes=num_classes,
-                                alphas=[int(i) / 10 for i in task[4].split('-')],
-                                dropout_prob=.5,
-                                side_fc=1024).to(conf.device)
-    elif task[0] == 'resnet':
-        model = FusionSideNetFcResNet(300,
-                                      num_classes=num_classes,
-                                      alphas=[int(i) / 10 for i in task[4].split('-')],
-                                      dropout_prob=.5,
-                                      side_fc=512).to(conf.device)
-    elif task[0] == 'mobilenet-direct':
-        model = FusionSideNetDirect(300,
-                                    num_classes=num_classes,
-                                    alphas=[int(i) / 10 for i in task[4].split('-')],
-                                    dropout_prob=.5).to(conf.device)
-    elif task[0] == 'resnet-direct':
-        model = FusionSideNetDirectResNet(300,
-                                          num_classes=num_classes,
-                                          alphas=[int(i) / 10 for i in task[4].split('-')],
-                                          dropout_prob=.5).to(conf.device)
+    if task[0] == 'vgg-512':
+        model = FusionSideNetFcVGG(300,
+                                   num_classes=num_classes,
+                                   alphas=[int(i) / 10 for i in task[4].split('-')],
+                                   dropout_prob=.5,
+                                   side_fc=512).to(conf.device)
+    elif task[0] == 'vgg-1024':
+        model = FusionSideNetFcVGG(300,
+                                   num_classes=num_classes,
+                                   alphas=[int(i) / 10 for i in task[4].split('-')],
+                                   dropout_prob=.5,
+                                   side_fc=1024).to(conf.device)
+    else:
+        model = FusionSideNetFcVGG(300,
+                                   num_classes=num_classes,
+                                   alphas=[int(i) / 10 for i in task[4].split('-')],
+                                   dropout_prob=.5,
+                                   side_fc=0).to(conf.device)
 
     weight = None
     criterion = nn.CrossEntropyLoss(weight=weight).to(conf.device)
@@ -75,5 +65,5 @@ for task in conf.tasks:
         f'{best_valid_acc:.3f},' \
         f'{test_acc:.3f},' \
         f'{",".join([f"{r[i] / np.sum(r):.3f}" for i, r in enumerate(confusion_matrix)])}\n'
-    with open('../test/results_rvl.csv', 'a+') as f:
+    with open('../test/results_tobacco.csv', 'a+') as f:
         f.write(s)

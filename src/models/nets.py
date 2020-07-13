@@ -223,6 +223,8 @@ class FusionSideNetFcVGG(nn.Module):
         self.base = VGG(num_classes=num_classes, classify=False)
         for param in self.base.parameters():
             param.requires_grad_(False)
+        for param in self.base.preclassifier.parameters():
+            param.requires_grad_(False)
         self.side_image = VGG(num_classes=num_classes, classify=False)
         self.image_output_dim = 4096
         self.side_text = ShawnNet(embedding_dim,
@@ -234,10 +236,14 @@ class FusionSideNetFcVGG(nn.Module):
                                   classify=False)
 
         self.fc1fus = nn.Linear(self.side_text.num_filters * len(self.side_text.windows), self.image_output_dim)
-        self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
-                                        nn.Linear(self.image_output_dim, side_fc),
-                                        nn.Dropout(dropout_prob),
-                                        nn.Linear(side_fc, num_classes))
+        if side_fc == 0:
+            self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                            nn.Linear(self.image_output_dim, num_classes))
+        else:
+            self.classifier = nn.Sequential(nn.Dropout(dropout_prob),
+                                            nn.Linear(self.image_output_dim, side_fc),
+                                            nn.Dropout(dropout_prob),
+                                            nn.Linear(side_fc, num_classes))
 
     def forward(self, y):
         b_x, s_text_x = y

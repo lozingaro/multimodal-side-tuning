@@ -13,9 +13,12 @@ tasks_classifier = [
     # '1280x256x10',
     # '1280x512x10',
     # 'resnet',
-    'mobilenet',
+    # 'mobilenet',
     # 'resnet-direct',
-    # 'mobilenet-direct'
+    # 'mobilenet-direct',
+    'vgg-direct',
+    'vgg-512',
+    'vgg-1024',
 ]
 tasks_optimizer = ['sgd']  # ['sgd', 'adam']
 tasks_embedding = ['fasttext']  # ['fasttext', 'custom']
@@ -26,17 +29,17 @@ tasks_loss_weigth = [
 ]
 
 tasks_coeffs = [
-    # '2-3-5',
-    # '2-4-4',
-    # '2-5-3',
-    # '3-2-5',
+    '2-3-5',
+    '2-4-4',
+    '2-5-3',
+    '3-2-5',
     '3-3-4',
-    # '3-4-3',
-    # '3-5-2',
-    # '4-2-4',
-    # '4-3-3',
-    # '4-4-2',
-    # '5-2-3',
-    # '5-3-2'
+    '3-4-3',
+    '3-5-2',
+    '4-2-4',
+    '4-3-3',
+    '4-4-2',
+    '5-2-3',
+    '5-3-2'
 ]
 tasks = itertools.product(tasks_classifier, tasks_optimizer, tasks_embedding, tasks_loss_weigth, tasks_coeffs)
