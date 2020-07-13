@@ -57,7 +57,7 @@ for task in conf.tasks:
     optimizer = torch.optim.SGD(model.parameters(), lr=.1, momentum=.9)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: .1 * (1.0 - float(epoch) / num_epochs) ** .5)
 
-    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print(sum(p.numel() for p in model.parameters()))
     pipeline = TrainingPipeline(model, criterion, optimizer, scheduler, device=conf.device, num_classes=num_classes)
     best_valid_acc, test_acc, confusion_matrix = pipeline.run(dl_train, dl_val, dl_test, num_epochs=num_epochs)
 

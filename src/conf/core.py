@@ -16,9 +16,9 @@ tasks_classifier = [
     # 'mobilenet',
     # 'resnet-direct',
     # 'mobilenet-direct',
-    'vgg-direct',
-    'vgg-512',
     'vgg-1024',
+    'vgg-512',
+    'vgg-direct',
 ]
 tasks_optimizer = ['sgd']  # ['sgd', 'adam']
 tasks_embedding = ['fasttext']  # ['fasttext', 'custom']

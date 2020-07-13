@@ -217,7 +217,7 @@ class FusionSideNetFcVGG(nn.Module):
         super(FusionSideNetFcVGG, self).__init__()
         self.name = f'fusion-vgg-{side_fc}'
         if alphas is None:
-            alphas = [.3, .3]
+            alphas = [.3, .3, .4]
         self.alphas = alphas
 
         self.base = VGG(num_classes=num_classes, classify=False)
