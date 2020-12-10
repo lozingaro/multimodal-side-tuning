@@ -32,11 +32,17 @@ Download the Tobacco3482 dataset to test the demo or try with the RVL-CDIP full 
 
 ## Running experiments [\[^\]](#Contents)
 
-Describe the process to perform demo at least with Tobacco3482 dataset.
+The repository comes with a demo that can be found in `src` folder with the name `demo_mmst.py`. It can be configure with the preferred hyperparamters and run with the following command.
+
+```bash
+python3 demo_mmst.py
+```
+
+For space reason, the datasets are not included in the repository. Reference for the download can be found on the [Quicksign github page](https://github.com/Quicksign/ocrized-text-dataset). The authors of this work do not held responsible for the availability of the datasets.
 
 ## Citation [\[^\]](#Contents)
 
-If you find this repository useful, then please cite the work:
+If you find this repository useful, please cite the original paper work:
 
 ```bibtex
 @inproceedings{Zingaro2020,
