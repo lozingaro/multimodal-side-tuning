@@ -1,8 +1,6 @@
 # Multimodal `Side-tuning`
 
-<div>
-  <img src="./assets/img/method_model_overview.png" alt="method model overview" width="1462" />
-</div>
+![Method model overview](assets/method_model_overview.png)
 
 In this repository we provide implementation of side-tuning framework using multimodal input features. 
 The side-tuning framework was originally proposed in the paper [Side-Tuning: Network Adaptation via Additive Side Networks](https://arxiv.org/abs/1912.13503).
@@ -23,13 +21,11 @@ We validated the hyper-parameters for the model to be trained on this dataset on
 
 ### Multimodal Side-Tuning
 
-![side-tuning](assets/side-tuning.png)
+![multimodal-side-tuning](assets/multimodal-side-tuning.png)
 
 Network adaptation immediately seemed to be the way to approach the multimodal problem and thus we selected a state-of-the-art framework that, in our understanding, could have helped exploiting the data nature heterogeneity.
 In side-tuning, one side of the network (left, in the figure) has locked weights while the unlocked part on the right, allows network’s parameters update. Notably, side-tuning offers a way to combine the input features by applying a linear transformation, which coefficients have to be properly selected. 
 Side-tuning features combination presents two peculiar values for the blending parameter alpha. alpha equal to 0, that corresponds to fine-tuning in transfer learning fashion and alpha equal to 1, that permits to perform features extraction.
-
-![multimodal-side-tuning](assets/multimodal-side-tuning.png)
 
 In the multimodal setting, we selected one off-the-shelf architecture pre-trained on imagenet for image classification, and one CNN for text classification. 
 We chose the side network, the one with locked weights, to be the same as the one for the image classification task, in order to favor visual features over textual. 
@@ -41,14 +37,14 @@ What emerged from the work is the confirmation of the initial hypothesis that si
 In particular, when considering the document image classification task, we found that the best cluster of models benefits from learning textual features while extracting visual. 
 In other words, these models place themselves between the yellow and the green area.
 
-![alpha-curriculum](assets/alpha-curriculum.png)
+![alpha-curriculum](assets/alpha.png)
 
 ### Results
 
+![tobacco-results](assets/tobacco-results.png)
+
 Experimental results were conducted on the one hand to assess the relevance of multimodality and that of side-tuning, while, on the other hand, to compare with the already existing models and proving the effectiveness of our methodology. 
 In conclusion, both the claims proved to be correct.
-
-![tobacco-results](assets/tobacco-results.png)
 
 ![rvl-results](assets/rvl-results.png)
 
