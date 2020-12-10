@@ -82,12 +82,12 @@ def load_img_samples(orig_dir, dest_dir):
 if __name__ == '__main__':
     fasttext_model = FastText()
     glove_model = GloVe()
-    load_img_samples('/data01/stefanopio.zingaro/datasets/Tobacco3482-jpg',
+    load_img_samples('../data/original/Tobacco3482-jpg',
                      '../data/Tobacco3482-jpg')
-    load_txt_samples('/data01/stefanopio.zingaro/datasets/QS-OCR-small',
+    load_txt_samples('../data/original/QS-OCR-small',
                      '../data/QS-OCR-small', fasttext_model)
     for s in ['val', 'test', 'train']:
-        load_img_samples(f'/data01/stefanopio.zingaro/datasets/RVL-CDIP/{s}',
+        load_img_samples(f'../data/original/RVL-CDIP/{s}',
                          f'../data/RVL-CDIP/{s}')
-        load_txt_samples(f'/data01/stefanopio.zingaro/datasets/QS-OCR-Large/{s}',
+        load_txt_samples(f'../data/original/QS-OCR-Large/{s}',
                          f'../data/QS-OCR-Large/{s}', fasttext_model)
