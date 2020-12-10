@@ -79,7 +79,7 @@ def split_tobacco(split_dir):
         from subprocess import call
         call(["cp", source, dest])
         return None
-    d = TobaccoDataset(img_root_dir='/Volumes/SD128/Developer/ocrized-text-dataset/datasets/Tobacco3482', txt_root_dir='/Volumes/SD128/Developer/ocrized-text-dataset/datasets/QS-OCR-small')
+    d = TobaccoDataset(img_root_dir='../data/Tobacco3482', txt_root_dir='../data/QS-OCR-small')
     d_train, d_val, d_test = torch.utils.data.random_split(d, [800, 200, 2482])
     if not os.path.isdir(split_dir):
         os.mkdir(split_dir)
