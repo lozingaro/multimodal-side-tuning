@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 
 from datasets.tobacco import TobaccoDataset
 from datasets.rvl_cdip import RvlDataset
-from models.nets import FusionSideNetFcResNet, FusionSideNetFcMobileNet, FusionSideNetDirect, FusionSideNetFcVGG
+from models.nets import FusionSideNetFcResNet, FusionSideNetFcMobileNet, FusionSideNetFcVGG
 from models.utils import TrainingPipeline
 
 print("""
@@ -94,7 +94,6 @@ for alphas in alpha_configurations:
     for model in (
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         # FusionSideNetFcMobileNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=512),
-        # FusionSideNetDirect(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5),
         # FusionSideNetFcResNet(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
         FusionSideNetFcVGG(300, num_classes=num_classes, alphas=alphas, dropout_prob=.5, side_fc=1024),
     ):
