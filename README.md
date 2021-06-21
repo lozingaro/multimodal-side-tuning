@@ -87,10 +87,13 @@ For space reason, the datasets are not included in the repository. Reference for
 If you find this repository useful, please cite the original paper work:
 
 ```bibtex
-@inproceedings{Zingaro2020,
-    title={Multimodal Side-Tuning for Document Classification},
-    author={Stefano P. Zingaro and Giuseppe Lisanti and Maurizio Gabbrielli},
-    year={2020},
+@inproceedings{Zingaro2021,
+  title={Multimodal Side-Tuning for Document Classification},
+  author={Zingaro, Stefano Pio and Lisanti, Giuseppe and Gabbrielli, Maurizio},
+  booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
+  pages={5206--5213},
+  year={2021},
+  organization={IEEE}
 }
 ```
 
