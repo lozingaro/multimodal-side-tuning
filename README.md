@@ -1,5 +1,7 @@
 # Multimodal `Side-tuning`
 
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/multimodal-side-tuning-for-document/document-image-classification-on-tobacco-3482)](https://paperswithcode.com/sota/document-image-classification-on-tobacco-3482?p=multimodal-side-tuning-for-document)
+
 ![Method model overview](assets/method_model_overview.png)
 
 In this repository we provide implementation of side-tuning framework using multimodal input features. 
