@@ -3,4 +3,4 @@ torchvision==0.5.0
 torch>=1.13.1
 numpy==1.22.0
 matplotlib==3.2.0
-tqdm==4.43.0
+tqdm==4.66.3
